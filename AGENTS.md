@@ -11,7 +11,7 @@ React 19 + TypeScript + Vite + Tailwind CSS v4 project.
 - `pnpm lint` — ESLint over `src/`
 - `pnpm test` — Vitest run
 - `pnpm build` — production build to `dist/`
-- `pnpm format` / `pnpm format:check` — oxfmt
+- `pnpm format` / `pnpm format:check` — oxfmt, configured by `.oxfmtrc.json`. Format **only the files you touched**; a repo-wide run rewrites ~260 unrelated files, and `format:check` is not a gate (see `docs/contributing.md`).
 
 ## Project Structure
 

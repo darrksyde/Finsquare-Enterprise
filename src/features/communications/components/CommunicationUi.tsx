@@ -59,6 +59,7 @@ const categoryTones: Record<MessageCategory, Tone> = {
   General: "neutral",
   "Contribution reminder": "blue",
   "Loan reminder": "amber",
+  "Dues reminder": "purple",
 }
 export const CategoryBadge = ({ category }: { category: MessageCategory }) => (
   <Badge tone={categoryTones[category]}>{category}</Badge>

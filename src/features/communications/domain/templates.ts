@@ -86,3 +86,33 @@ export function loanReminder(input: {
     body: `Hi ${NAME_TOKEN}, your loan repayment of ${money(amount)} is ${duePhrase(dueDate, today)}. Please make your payment before the due date.`,
   }
 }
+
+/**
+ * "Hi David, your ₦2,000 membership dues for Monthly Association Dues is due tomorrow. Please pay
+ * through your FinSquare wallet."
+ *
+ * `outstanding` is everything the member owes on the plan, which is what an outstanding or overdue
+ * reminder should name; without it the message is about the period that falls due, and the amount
+ * is the plan's own figure. A member with no due date yet still gets a message — it just does not
+ * claim a date.
+ */
+export function duesReminder(input: {
+  amount?: number
+  planName: string
+  dueDate?: string
+  today: string
+  outstanding?: number
+}): ReminderDraft {
+  const { amount, planName, dueDate, today, outstanding } = input
+  const figure = outstanding && outstanding > 0 ? outstanding : amount
+  const what = figure
+    ? `your ${money(figure)} membership dues for ${planName}`
+    : `your membership dues for ${planName}`
+  return {
+    category: "Dues reminder",
+    subject: figure ? `Dues reminder — ${money(figure)} · ${planName}` : `Dues reminder — ${planName}`,
+    body: dueDate
+      ? `Hi ${NAME_TOKEN}, ${what} is ${duePhrase(dueDate, today)}. Please pay through your FinSquare wallet.`
+      : `Hi ${NAME_TOKEN}, ${what} are outstanding. Please pay through your FinSquare wallet.`,
+  }
+}

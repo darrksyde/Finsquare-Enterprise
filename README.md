@@ -32,6 +32,10 @@ pnpm format:check
 pnpm build
 ```
 
+`pnpm format:check` is not a gate: the repository has not been machine-formatted, so it reports
+pre-existing diffs across many files. Format only the files you touched — see
+[`docs/contributing.md`](docs/contributing.md) § *Formatting*.
+
 ## Project structure
 
 ```text

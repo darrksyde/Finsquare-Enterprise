@@ -5,16 +5,6 @@ export interface Money {
   currency: string
 }
 
-export interface DuesScheme {
-  id: EntityId
-  name: string
-  amount: Money
-  frequency: "weekly" | "monthly" | "quarterly" | "annual"
-  eligibleMemberIds: EntityId[]
-  status: "draft" | "active" | "archived"
-  dueDate: string
-}
-
 export interface LoanProduct {
   id: EntityId
   name: string

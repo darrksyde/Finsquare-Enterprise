@@ -3,6 +3,7 @@ import type {
   ContributionParticipant,
   ContributionPeriod,
 } from "@/features/contributions/types/contribution.types"
+import type { DuesCharge, DuesParticipant, DuesPlan } from "@/features/dues/types/dues.types"
 import type { Loan } from "@/features/loans/types/loan.types"
 
 /**
@@ -13,7 +14,7 @@ import type { Loan } from "@/features/loans/types/loan.types"
 export interface MemberObligation {
   /** Unique across modules, so the same plan and loan cannot collide. */
   id: string
-  kind: "Contribution" | "Loan repayment"
+  kind: "Contribution" | "Loan repayment" | "Dues"
   /** What the administrator reads first: the plan or the loan product. */
   title: string
   /** The specific period or instalment being paid. */
@@ -27,6 +28,8 @@ export interface MemberObligation {
   participantId?: string
   periodKey?: string
   loanId?: string
+  duesPlanId?: string
+  duesChargeId?: string
 }
 
 export interface MemberObligations {
@@ -43,6 +46,8 @@ export interface MemberMoneySummary {
   loansOutstanding: number
   activeLoans: number
   nextLoanDueDate?: string
+  duesOutstanding: number
+  overdueDues: number
   walletBalance: number
 }
 
@@ -115,6 +120,52 @@ export function contributionObligations(input: {
 }
 
 /**
+ * Dues charges the member owes, from every plan they are on.
+ *
+ * A charge counts once it is due and not fully paid, exactly like a contribution period: a future
+ * charge is scheduled money, not demandable money, and a partly paid one is still payable. The
+ * charge's lien state is deliberately not shown here — the member profile says what is owed, and
+ * the Dues module explains how it will be collected.
+ */
+export function duesObligations(input: {
+  memberId: string
+  plans: DuesPlan[]
+  participants: DuesParticipant[]
+  charges: DuesCharge[]
+  today: string
+}): MemberObligation[] {
+  const { memberId, plans, participants, charges, today } = input
+  const byId = new Map(plans.map((plan) => [plan.id, plan]))
+  const mine = new Set(participants.filter((participant) => participant.memberId === memberId).map((p) => p.id))
+  const obligations: MemberObligation[] = []
+
+  for (const charge of charges) {
+    if (!mine.has(charge.participantId)) continue
+    const plan = byId.get(charge.duesPlanId)
+    if (!plan) continue
+    const outstanding = round2(charge.expectedAmount - charge.paidAmount)
+    if (outstanding <= 0 || !isDue(charge.dueDate, today)) continue
+    obligations.push({
+      id: `dues:${charge.id}`,
+      kind: "Dues",
+      title: plan.name,
+      detail: `Period ${charge.periodKey}`,
+      dueDate: charge.dueDate,
+      amount: charge.expectedAmount,
+      paid: charge.paidAmount,
+      outstanding,
+      overdue: charge.state === "Overdue",
+      duesPlanId: plan.id,
+      duesChargeId: charge.id,
+      participantId: charge.participantId,
+      periodKey: charge.periodKey,
+    })
+  }
+
+  return obligations
+}
+
+/**
  * Loan instalments the member owes. `Upcoming` instalments are scheduled, not yet demandable.
  *
  * The instalment's own shortfall is `amount - paid`. `RepaymentScheduleItem.balance` is the loan's
@@ -154,11 +205,21 @@ export function memberObligations(input: {
   participants: ContributionParticipant[]
   periods: ContributionPeriod[]
   loans: Loan[]
+  duesPlans?: DuesPlan[]
+  duesParticipants?: DuesParticipant[]
+  duesCharges?: DuesCharge[]
   today: string
 }): MemberObligations {
   const items = [
     ...contributionObligations(input),
     ...loanObligations(input),
+    ...duesObligations({
+      memberId: input.memberId,
+      plans: input.duesPlans ?? [],
+      participants: input.duesParticipants ?? [],
+      charges: input.duesCharges ?? [],
+      today: input.today,
+    }),
   ].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 
   return {
@@ -174,6 +235,9 @@ export function memberMoneySummary(input: {
   participants: ContributionParticipant[]
   periods: ContributionPeriod[]
   loans: Loan[]
+  duesPlans?: DuesPlan[]
+  duesParticipants?: DuesParticipant[]
+  duesCharges?: DuesCharge[]
   walletBalance: number
   today: string
 }): MemberMoneySummary {
@@ -199,6 +263,14 @@ export function memberMoneySummary(input: {
     .filter((date): date is string => typeof date === "string" && !isDue(date, today))
     .sort()[0]
 
+  const dues = duesObligations({
+    memberId,
+    plans: input.duesPlans ?? [],
+    participants: input.duesParticipants ?? [],
+    charges: input.duesCharges ?? [],
+    today,
+  })
+
   return {
     contributionsPaid: round2(mine.reduce((sum, participant) => sum + participant.totalContributed, 0)),
     contributionBalance: round2(mine.reduce((sum, participant) => sum + participant.availableBalance, 0)),
@@ -207,6 +279,8 @@ export function memberMoneySummary(input: {
     loansOutstanding: round2(myLoans.reduce((sum, loan) => sum + loan.outstanding, 0)),
     activeLoans: myLoans.length,
     nextLoanDueDate: next,
+    duesOutstanding: round2(dues.reduce((sum, obligation) => sum + obligation.outstanding, 0)),
+    overdueDues: dues.filter((obligation) => obligation.overdue).length,
     walletBalance: round2(walletBalance),
   }
 }

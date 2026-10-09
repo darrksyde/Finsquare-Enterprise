@@ -26,11 +26,13 @@ Module ids: wallet, members, groups, branches, contributions, dues, payments, sa
 | `corporate-account` | Repository/service for the corporate account application (mock + API implementations) |
 | `loans` | Entire loan domain (see `loans.md`) |
 | `wallet` | Main wallet, branch wallets, transactions, access controls (see `wallet.md`) |
+| `dues` | Dues plans, participants, charge ledger, wallet liens and recovery (see `dues.md`) |
 | `contributions` | Contribution plans, contributors, payouts, commission, public contribution links (see `contributions.md`) |
+| `dues` | Dues plans, participants, the charge ledger, wallet liens and recovery, reminders and reports (see `dues.md`) |
 | `communications` | Messaging workspace: compose, history, SMS balance, contribution and loan reminders (see `communications.md`). Sidebar section **Communications** → item **Messaging** |
-| `reports` | Central reports page (Loans, Wallet, Contributions) |
+| `reports` | Central reports page (Loans, Wallet, Contributions, Dues) |
 | `settings` | Appearance & branding, accent picker, settings tabs |
-| `financial-operations` | Dues page and the dues/loan methods behind it |
+| `financial-operations` | The loan-product methods behind the loan screens. The Dues page that used to live here is now the `dues` feature (see `dues.md`). |
 | `workflows` | Workflow builder (generic) |
 | `overview` | Dashboard |
 

@@ -19,6 +19,13 @@ Pages render **one** header through `components/layout/ShellPage.tsx`; the bread
 
 Current sidebar: Overview · Organization ▾ (Members, Branches, Groups) · Finance ▾ (Contributions, Dues, Payments, Savings) · Wallet · Loans ▾ (Overview, Applications, Active loans, Disbursements, Repayments) · Communications ▾ (Messaging) · Reports · Settings.
 
+**Dues** is a front door plus the plan itself, in the same shape as Contributions: `/dues` (the
+dashboard and plan list), `/dues/:id` (the plan, with its own Overview / Participants / Payments /
+Activity tabs) and `/dues/new` (one-page creation). The detail route is registered in
+`secondaryAccess` under the `dues` item and resolves through the `/^\/dues\/[^/]+$/` fallback in
+`resolveView`, which sits after the exact paths — so `/dues/new` is creation, not a plan called
+"new". Dues reporting lives on the central Reports page, not in the sidebar. See `dues.md`.
+
 The sidebar's `Documents` item sits in the Communications section but is not in
 `DEFAULT_ENABLED_MODULES`, so it is not rendered. Enabled modules come from that constant and from
 the Modules settings page (the `modules/replaced` action) — `organizationMock.enabledModules` is not

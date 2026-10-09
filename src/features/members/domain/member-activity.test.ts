@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { memberActivity } from "./member-activity"
 import type { ContributionTransaction } from "@/features/contributions/types/contribution.types"
+import type { DuesTransaction } from "@/features/dues/types/dues.types"
 import type { LoanRepayment } from "@/features/loans/types/loan.types"
 import type { WalletTransaction } from "@/features/wallet/types/wallet.types"
 
@@ -46,6 +47,24 @@ const walletTx = (overrides: Partial<WalletTransaction> = {}): WalletTransaction
     ...overrides,
   }) as WalletTransaction
 
+const duesTx = (overrides: Partial<DuesTransaction> = {}): DuesTransaction =>
+  ({
+    id: "dtx-1",
+    organizationId: "org-lagos-farmers",
+    reference: "DSQ-100001",
+    duesPlanId: "dues-monthly",
+    memberName: "Adewale Johnson",
+    periodKey: "2026-03",
+    type: "Payment",
+    method: "wallet",
+    amount: 2_000,
+    direction: "credit",
+    status: "Completed",
+    date: "2026-03-13T09:00:00.000Z",
+    recordedBy: "Adesola Ogunleye",
+    ...overrides,
+  }) as DuesTransaction
+
 describe("member activity", () => {
   it("merges the three ledgers, newest first", () => {
     const rows = memberActivity({
@@ -88,5 +107,31 @@ describe("member activity", () => {
       contributionNames: new Map(),
     })
     expect(rows[0].what).toBe("Contribution")
+  })
+
+  it("lists a dues payment once: from the dues ledger, not also from the wallet", () => {
+    const rows = memberActivity({
+      transactions: [],
+      repayments: [],
+      walletTransactions: [walletTx({ id: "wtx-dues", type: "Dues", amount: 2_000, direction: "debit" })],
+      contributionNames: new Map(),
+      duesTransactions: [duesTx()],
+      duesNames: new Map([["dues-monthly", "Monthly Association Dues"]]),
+    })
+
+    expect(rows.filter((row) => row.source === "Dues")).toHaveLength(1)
+    expect(rows.find((row) => row.source === "Dues")?.what).toBe("Monthly Association Dues")
+    // The wallet's own row for the same money is suppressed.
+    expect(rows.some((row) => row.source === "Wallet")).toBe(false)
+  })
+
+  it("still shows a dues wallet movement when the dues module is not loaded", () => {
+    const rows = memberActivity({
+      transactions: [],
+      repayments: [],
+      walletTransactions: [walletTx({ id: "wtx-dues", type: "Dues", direction: "debit" })],
+      contributionNames: new Map(),
+    })
+    expect(rows.map((row) => row.source)).toEqual(["Wallet"])
   })
 })

@@ -17,7 +17,7 @@ const CHANNELS: { id: MessageChannel; label: string; hint: string }[] = [
   { id: "Both", label: "SMS + Email", hint: "Reach people on whichever they have" },
 ]
 
-type Shortcut = "blank" | "Contribution reminder" | "Loan reminder"
+type Shortcut = "blank" | "Contribution reminder" | "Loan reminder" | "Dues reminder"
 
 /**
  * Compose: who, what, how much, send.
@@ -180,6 +180,17 @@ export function ComposeTab({ ctx, notify }: { ctx: CommunicationsCtx; notify: (m
                 >
                   <b>Loan reminder</b>
                   <small>From a borrower's next instalment</small>
+                </button>
+              )}
+              {ctx.enabledModules.includes("dues") && (
+                <button
+                  type="button"
+                  className="choice"
+                  aria-pressed={shortcut === "Dues reminder"}
+                  onClick={() => chooseShortcut("Dues reminder")}
+                >
+                  <b>Dues reminder</b>
+                  <small>From a plan's outstanding dues</small>
                 </button>
               )}
             </div>

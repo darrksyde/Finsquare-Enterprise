@@ -19,6 +19,14 @@ Code: `src/features/wallet/`. Pattern: components → `hooks` → `services/wall
 
 Funding, spending and crediting all run the same `checkOutflow` guards. `spend` draws on a named limit bucket — `Contribution`, `Withdrawal`, `Transfer` or `Disbursement` — so a contribution debit is checked against `dailyWithdrawal` and counted as a `Contribution` movement.
 
+### Dues
+`features/dues` (see `dues.md`) collects fixed recurring dues through the same wallets. A dues debit
+is a `type: "Dues"` transaction carrying `related.duesId`, and it draws on the member wallet's
+**withdrawal** limit. When a charge is unpaid past its plan's grace period the plan raises a **lien**
+— a claim on the member's own wallet, never a second ledger — and the wallet does not need to know:
+it announces credited wallets through `walletService.onWalletsCredited`, and the dues service
+collects what it is owed. `TransactionType` includes `"Dues"` for exactly this reason.
+
 ## Transfers
 `TransferModal` — account number (10 digits), bank, amount, narration, 4-digit PIN. Internal accounts resolve to a wallet and move instantly; external transfers create a Processing (or Completed in simulation) debit. Validation by zod `transferOutSchema`; limits and status checks in `service.checkOutflow`. The mock PIN is `1234` and **must be verified server-side** in production.
 

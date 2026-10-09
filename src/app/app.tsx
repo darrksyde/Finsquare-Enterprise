@@ -36,7 +36,7 @@ import {
   CompliancePage,
   CorporatePage,
 } from "@/features/compliance/components/CompliancePages"
-import { DuesPage } from "@/features/financial-operations/components/FinancialPages"
+import { DuesCreatePage, DuesDetailPage, DuesOverviewPage } from "@/features/dues"
 import {
   ContributionCreatePage,
   ContributionDetailPage,
@@ -235,7 +235,11 @@ export default function FinSquareApp() {
   } else if (view === "contribution-create") {
     content = <ContributionCreatePage view="contribution-create" navigate={navigate} notify={notify} />
   } else if (view === "dues") {
-    content = <DuesPage notify={notify} />
+    content = <DuesOverviewPage view="dues" navigate={navigate} notify={notify} />
+  } else if (view === "dues-detail") {
+    content = <DuesDetailPage view="dues-detail" id={entityId ?? ""} navigate={navigate} notify={notify} />
+  } else if (view === "dues-create") {
+    content = <DuesCreatePage view="dues-create" navigate={navigate} notify={notify} />
   } else if (view.startsWith("wallet")) {
     content = (
       <WalletPage navigate={navigate} notify={notify} id={entityId}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { contributionReminder, duePhrase, loanReminder } from "./templates"
+import { contributionReminder, duesReminder, duePhrase, loanReminder } from "./templates"
 
 const TODAY = "2026-10-05"
 
@@ -91,5 +91,47 @@ describe("loanReminder", () => {
     })
     expect(draft.subject).toBe("Loan repayment due — Emergency Loan")
     expect(draft.body).toContain("overdue since yesterday")
+  })
+})
+
+
+describe("duesReminder", () => {
+  it("states the outstanding total for a plan when it is known", () => {
+    const draft = duesReminder({
+      amount: 2_000,
+      planName: "Monthly Association Dues",
+      dueDate: "2026-10-06",
+      today: TODAY,
+      outstanding: 6_000,
+    })
+    expect(draft.body).toBe(
+      "Hi {name}, your ₦6,000 membership dues for Monthly Association Dues is due tomorrow. Please pay through your FinSquare wallet.",
+    )
+    expect(draft.category).toBe("Dues reminder")
+    expect(draft.subject).toBe("Dues reminder — ₦6,000 · Monthly Association Dues")
+  })
+
+  it("falls back to the plan's own amount for a period falling due", () => {
+    const draft = duesReminder({
+      amount: 500,
+      planName: "Weekly Security Levy",
+      dueDate: "2026-10-04",
+      today: TODAY,
+    })
+    expect(draft.body).toContain("your ₦500 membership dues for Weekly Security Levy")
+    expect(draft.body).toContain("overdue since yesterday")
+  })
+
+  it("names no figure and no date rather than stating a wrong one", () => {
+    const draft = duesReminder({ planName: "Annual Membership Renewal", today: TODAY })
+    expect(draft.body).toBe(
+      "Hi {name}, your membership dues for Annual Membership Renewal are outstanding. Please pay through your FinSquare wallet.",
+    )
+    expect(draft.subject).toBe("Dues reminder — Annual Membership Renewal")
+  })
+
+  it("keeps the {name} token so a bulk send greets each person", () => {
+    const draft = duesReminder({ amount: 1_000, planName: "Welfare Dues", today: TODAY })
+    expect(draft.body).toContain("{name}")
   })
 })

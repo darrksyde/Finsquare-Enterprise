@@ -21,6 +21,7 @@ This is a **frontend-only** app. All data comes from mocks behind repository int
 
 - Repo docs use **pnpm**; `npx` works everywhere. Both `package-lock.json` and `pnpm-lock.yaml` are committed.
 - Gate work on `npx tsc --noEmit -p .` + `npx vitest run`. **`npx eslint src` and `pnpm format:check` currently report pre-existing failures** (~38 errors, mostly `@typescript-eslint/no-unused-vars` in `features/wallet/*` and the dense demo pages; formatting diffs in many files). Run lint/format on the files you touch only — never run repo-wide `oxfmt`/`pnpm format` (it produces a huge unrelated diff).
+- Formatting is configured by `.oxfmtrc.json` (oxfmt, `semi: false`, `printWidth: 120`) so a formatted file matches the surrounding style, and formatting the files you touched is safe — it only rewrites whitespace, quotes and trailing commas. Never lower the oxfmt dependency back to a `^0.2.x` range: that release drops the separators inside inline object types and emits code that does not compile (see `docs/contributing.md` § *Formatting*).
 - For browser-level validation, the workspace configures the Playwright MCP server in `.vscode/mcp.json`. Serve the app (dev server or `pnpm preview`) rather than opening `dist/index.html` directly — the app uses `BrowserRouter`.
 
 ## Architecture

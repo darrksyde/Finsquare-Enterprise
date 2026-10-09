@@ -1,10 +1,6 @@
-import type { DuesScheme, LoanProduct } from "@/types"
+import type { LoanProduct } from "@/types"
 
 export interface FinancialOperationsService {
-  createDuesScheme(
-    organizationId: string,
-    input: Omit<DuesScheme, "id">,
-  ): Promise<DuesScheme>
   createLoanProduct(
     organizationId: string,
     input: Omit<LoanProduct, "id">,
@@ -31,9 +27,6 @@ function withId<T extends object>(
 }
 
 export const financialOperationsService: FinancialOperationsService = {
-  async createDuesScheme(_organizationId, input) {
-    return withId("dues", input)
-  },
   async createLoanProduct(_organizationId, input) {
     return withId("loan-product", input)
   },

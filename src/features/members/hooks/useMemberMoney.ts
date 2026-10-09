@@ -1,6 +1,9 @@
 import { useCallback, useMemo } from "react"
 import { useContributions } from "@/features/contributions/hooks/useContributions"
 import { CONTRIBUTION_ORG_ID } from "@/features/contributions/constants"
+import { DUES_ORG_ID } from "@/features/dues/constants"
+import { useDues } from "@/features/dues/hooks/useDues"
+import { participantTotals as duesParticipantTotals } from "@/features/dues/domain/dues.rules"
 import { toISODate } from "@/features/contributions/domain/calculations"
 import { useLoans } from "@/features/loans/hooks/useLoans"
 import { useWallet } from "@/features/wallet/hooks/useWallet"
@@ -25,11 +28,13 @@ export function useMemberMoney(input: {
 }) {
   const { memberId } = input
   const contributions = useContributions(CONTRIBUTION_ORG_ID)
+  const dues = useDues(DUES_ORG_ID)
   const loans = useLoans()
   const wallet = useWallet()
   const today = toISODate(new Date())
 
   const dataset = contributions.data
+  const duesData = dues.data
   const loanData = loans.data
   const walletData = wallet.data
 
@@ -73,6 +78,10 @@ export function useMemberMoney(input: {
     () => (walletData?.transactions ?? []).filter((transaction) => transaction.walletId === walletRow?.id),
     [walletData, walletRow],
   )
+  const memberDuesTransactions = useMemo(
+    () => (duesData?.transactions ?? []).filter((transaction) => transaction.memberId === memberId),
+    [duesData, memberId],
+  )
 
   const obligations = useMemo(
     () =>
@@ -82,9 +91,12 @@ export function useMemberMoney(input: {
         participants: dataset?.participants ?? [],
         periods: dataset?.periods ?? [],
         loans: loanData?.loans ?? [],
+        duesPlans: duesData?.plans ?? [],
+        duesParticipants: duesData?.participants ?? [],
+        duesCharges: duesData?.charges ?? [],
         today,
       }),
-    [memberId, dataset, loanData, today],
+    [memberId, dataset, loanData, duesData, today],
   )
 
   const summary = useMemo(
@@ -94,10 +106,13 @@ export function useMemberMoney(input: {
         participants: dataset?.participants ?? [],
         periods: dataset?.periods ?? [],
         loans: loanData?.loans ?? [],
+        duesPlans: duesData?.plans ?? [],
+        duesParticipants: duesData?.participants ?? [],
+        duesCharges: duesData?.charges ?? [],
         walletBalance: walletRow?.availableBalance ?? 0,
         today,
       }),
-    [memberId, dataset, loanData, walletRow, today],
+    [memberId, dataset, loanData, duesData, walletRow, today],
   )
 
   const activity = useMemo(
@@ -107,18 +122,22 @@ export function useMemberMoney(input: {
         repayments,
         walletTransactions,
         contributionNames: new Map((dataset?.contributions ?? []).map((contribution) => [contribution.id, contribution.name])),
+        duesTransactions: memberDuesTransactions,
+        duesNames: new Map((duesData?.plans ?? []).map((plan) => [plan.id, plan.name])),
       }),
-    [transactions, repayments, walletTransactions, dataset],
+    [transactions, repayments, walletTransactions, dataset, memberDuesTransactions, duesData],
   )
 
   const { retry: retryContributions } = contributions
+  const { retry: retryDues } = dues
   const { retry: retryLoans } = loans
   const { retry: retryWallet } = wallet
   const retry = useCallback(() => {
     retryContributions()
+    retryDues()
     retryLoans()
     retryWallet()
-  }, [retryContributions, retryLoans, retryWallet])
+  }, [retryContributions, retryDues, retryLoans, retryWallet])
 
   /**
    * Records what the member pays, across both modules, through one call. Refreshing all three
@@ -138,8 +157,26 @@ export function useMemberMoney(input: {
     [memberId, contributions.ctx, retry],
   )
 
-  const error = contributions.error ?? loans.error ?? wallet.error
-  const status: AsyncStatus = error ? "error" : dataset && loanData && walletData ? "success" : "loading"
+  const duesParticipants = useMemo(
+    () => (duesData?.participants ?? []).filter((participant) => participant.memberId === memberId),
+    [duesData, memberId],
+  )
+  /** The dues plans this member is actually on, not every plan in the organization. */
+  const duesPlans = useMemo(() => {
+    const ids = new Set(duesParticipants.map((participant) => participant.duesPlanId))
+    return (duesData?.plans ?? []).filter((plan) => ids.has(plan.id))
+  }, [duesData, duesParticipants])
+  const duesTotalsFor = useCallback(
+    (planId: string) => {
+      const participant = duesParticipants.find((row) => row.duesPlanId === planId)
+      if (!participant || !duesData) return undefined
+      return duesParticipantTotals(participant, duesData.charges, duesData.plans, today)
+    },
+    [duesParticipants, duesData, today],
+  )
+
+  const error = contributions.error ?? dues.error ?? loans.error ?? wallet.error
+  const status: AsyncStatus = error ? "error" : dataset && duesData && loanData && walletData ? "success" : "loading"
 
   const walletCtx = walletData ? ({ ...input, ...wallet, data: walletData } as WalletCtx) : null
 
@@ -154,6 +191,8 @@ export function useMemberMoney(input: {
     transactions,
     loans: memberLoans,
     repayments,
+    duesPlans,
+    duesTotalsFor,
     wallet: walletRow,
     walletCtx,
     walletTransactions,

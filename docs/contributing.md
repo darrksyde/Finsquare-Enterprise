@@ -22,6 +22,30 @@ deprecated it (`baseUrl` stops working in 7.0). Do not re-add it. Two traps come
 
 Run `npx tsc --showConfig -p .` after touching the file to confirm `paths` still resolves.
 
+## Formatting
+
+`oxfmt` formats the codebase; its configuration lives in `.oxfmtrc.json`:
+
+| Option | Value | Why |
+| --- | --- | --- |
+| `semi` | `false` | the codebase has no statement semicolons |
+| `singleQuote` | `false` | the project requires double quotes |
+| `printWidth` | `120` | the code is dense; the oxfmt default of 100 rewraps far more of every file |
+
+Format **only the files you touched** (`npx oxfmt <files>`). Formatting is presentation-only: it
+rewrites whitespace, quotes and trailing commas, and cannot change behaviour.
+
+Do **not** run `oxfmt src` / `pnpm format` across the repository. The codebase has never been
+machine-formatted, so a repo-wide run rewrites ~260 of the 331 source files and buries the real
+change. For the same reason `pnpm format:check` reports pre-existing diffs and is **not** a gate.
+Reformatting the repository is a decision of its own, not a side effect of another change.
+
+The pinned version matters here. The project sat on `oxfmt@^0.2.0`, and a `0.x` caret range cannot
+leave `0.2.x`, so it could never pick up a fix. That release dropped the separators inside inline
+object types — `{ id: string memberId: string }` — which produces code that does not compile, and
+oxfmt's changelog for 0.3.0 says outright *"The current version does not work; DO NOT USE."* Keep the
+dependency on a current release rather than declaring a version range that cannot move.
+
 ## Naming
 
 - React components: `PascalCase.tsx`

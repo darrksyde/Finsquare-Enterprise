@@ -136,6 +136,17 @@ letting it run made one row 944px wide and took the cost and status columns off 
 `communication.manage_balance` for the top-up (organization-only, since it spends organization money).
 See `permissions.md`.
 
+## Dues reminders
+
+A third shortcut, **Dues reminder**, works like the other two: choose a plan and what the message is
+about — *a period falling due*, *everything outstanding*, or *overdue dues only* — and the wording,
+figure and due date come from the plan's own charge ledger, with the affected members preselected.
+
+When the affected members owe different totals the figure is left out rather than naming an amount
+that is wrong for somebody, exactly as the contribution shortcut does for Flexible and Target plans.
+Nothing is sent from here, and the dues dataset is read only when the shortcut is chosen. See
+`dues.md`.
+
 ## Known gaps
 
 - **No scheduling UI.** `Scheduled` is a real status and seeded history shows it, but a frontend-only

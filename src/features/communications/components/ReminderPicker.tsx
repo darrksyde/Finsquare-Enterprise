@@ -1,10 +1,14 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { money } from "@/features/loans/components/LoanUi"
 import { useContributions } from "@/features/contributions/hooks/useContributions"
 import { CONTRIBUTION_ORG_ID } from "@/features/contributions/constants"
+import { DUES_ORG_ID } from "@/features/dues/constants"
+import { useDues } from "@/features/dues/hooks/useDues"
+import { outstandingOf } from "@/features/dues/domain/dues.rules"
+import { round2 } from "@/features/dues/domain/schedule"
 import { useLoans } from "@/features/loans/hooks/useLoans"
 import { todayISO } from "@/features/loans/domain/calculations"
-import { contributionReminder, loanReminder } from "../domain/templates"
+import { contributionReminder, duesReminder, loanReminder } from "../domain/templates"
 import type { MessageCategory, MessageContext } from "../types/message.types"
 
 export interface GeneratedReminder {
@@ -16,29 +20,30 @@ export interface GeneratedReminder {
   context: MessageContext
 }
 
+/** Which of a member's charges a dues reminder is about. */
+type DuesBucket = "Upcoming" | "Outstanding" | "Overdue"
+
 /**
- * The two operational shortcuts.
+ * The operational shortcuts.
  *
  * Choosing a plan or a loan is all it takes to produce a reminder: the wording comes from
  * `domain/templates`, the amount and due date come from the plan or loan itself, and the people it
  * concerns are preselected. Nothing is sent from here, and nothing is automated — the message lands
  * in the editor, where the administrator edits it and chooses who finally receives it.
  *
- * Each shortcut is mounted only when it is chosen, so the contribution and loan datasets are not
- * read until they are needed.
+ * Each shortcut is mounted only when it is chosen, so the contribution, loan and dues datasets are
+ * not read until they are needed.
  */
 export function ReminderPicker({
   kind,
   onGenerate,
 }: {
-  kind: Extract<MessageCategory, "Contribution reminder" | "Loan reminder">
+  kind: Extract<MessageCategory, "Contribution reminder" | "Loan reminder" | "Dues reminder">
   onGenerate: (reminder: GeneratedReminder) => void
 }) {
-  return kind === "Contribution reminder" ? (
-    <ContributionReminderPicker onGenerate={onGenerate} />
-  ) : (
-    <LoanReminderPicker onGenerate={onGenerate} />
-  )
+  if (kind === "Contribution reminder") return <ContributionReminderPicker onGenerate={onGenerate} />
+  if (kind === "Dues reminder") return <DuesReminderPicker onGenerate={onGenerate} />
+  return <LoanReminderPicker onGenerate={onGenerate} />
 }
 
 function ContributionReminderPicker({ onGenerate }: { onGenerate: (reminder: GeneratedReminder) => void }) {
@@ -103,6 +108,102 @@ function ContributionReminderPicker({ onGenerate }: { onGenerate: (reminder: Gen
       </div>
       <p className="contribution-hint">
         The due date and amount come from the plan. Edit the message and the recipients before sending.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Dues reminders: choose the plan and what the message is about — a period falling due, what is
+ * outstanding, or what is overdue — and the affected members are preselected with the figure the
+ * plan states. When affected members owe different totals the amount is left out rather than
+ * naming a figure that is wrong for somebody.
+ */
+function DuesReminderPicker({ onGenerate }: { onGenerate: (reminder: GeneratedReminder) => void }) {
+  const dues = useDues(DUES_ORG_ID)
+  const today = todayISO()
+  const [bucket, setBucket] = useState<DuesBucket>("Outstanding")
+  const [planId, setPlanId] = useState("")
+
+  const plans = useMemo(() => dues.plans.filter((plan) => plan.status === "Active"), [dues.plans])
+
+  const generate = (nextPlanId: string, nextBucket: DuesBucket) => {
+    const plan = plans.find((candidate) => candidate.id === nextPlanId)
+    if (!plan) return
+    const charges = dues.syncedChargesFor(plan)
+    const due = charges.filter((charge) => charge.dueDate <= today && outstandingOf(charge) > 0)
+    const pool =
+      nextBucket === "Upcoming"
+        ? charges.filter((charge) => charge.dueDate > today && outstandingOf(charge) > 0)
+        : nextBucket === "Overdue"
+          ? due.filter((charge) => charge.state === "Overdue")
+          : due
+
+    const byMember = new Map<string, number>()
+    for (const charge of pool) {
+      byMember.set(charge.memberId, round2((byMember.get(charge.memberId) ?? 0) + outstandingOf(charge)))
+    }
+    const totals = [...byMember.values()]
+    const everyoneOwesTheSame = totals.length > 0 && totals.every((total) => total === totals[0])
+    const nextDueDate = [...pool].map((charge) => charge.dueDate).sort()[0]
+
+    const draft = duesReminder({
+      amount: plan.amount,
+      planName: plan.name,
+      dueDate: nextBucket === "Overdue" ? undefined : nextDueDate,
+      today,
+      outstanding: nextBucket === "Upcoming" || !everyoneOwesTheSame ? undefined : totals[0],
+    })
+    onGenerate({
+      ...draft,
+      memberIds: [...byMember.keys()],
+      context: { duesPlanId: plan.id, duesPlanName: plan.name },
+    })
+  }
+
+  if (dues.error) {
+    return <p className="contribution-hint">{dues.error}</p>
+  }
+
+  return (
+    <div className="create-question">
+      <div className="create-q">Which dues?</div>
+      <div className="contribution-filters">
+        <select
+          aria-label="Dues plan to remind about"
+          value={planId}
+          onChange={(event) => {
+            setPlanId(event.target.value)
+            if (event.target.value) generate(event.target.value, bucket)
+          }}
+        >
+          <option value="">Choose a dues plan…</option>
+          {plans.map((plan) => (
+            <option key={plan.id} value={plan.id}>
+              {plan.name} — {money(plan.amount)} {plan.frequency.toLowerCase()}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="What the reminder is about"
+          value={bucket}
+          onChange={(event) => {
+            const next = event.target.value as DuesBucket
+            setBucket(next)
+            if (planId) generate(planId, next)
+          }}
+        >
+          <option value="Upcoming">A period falling due</option>
+          <option value="Outstanding">Everything outstanding</option>
+          <option value="Overdue">Overdue dues only</option>
+        </select>
+        <span className="contribution-sub">
+          {plans.length} active {plans.length === 1 ? "plan" : "plans"}
+        </span>
+      </div>
+      <p className="contribution-hint">
+        The amount and due date come from the plan and its charge ledger. Only the members the message is about are
+        preselected. Edit the message and the recipients before sending.
       </p>
     </div>
   )

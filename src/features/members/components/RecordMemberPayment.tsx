@@ -121,7 +121,7 @@ export function RecordMemberPayment({
       />
 
       {obligations.length === 0 ? (
-        <p className="contribution-hint">This member has nothing due. Contributions and loan instalments appear here as they fall due.</p>
+        <p className="contribution-hint">This member has nothing due. Contributions, dues and loan instalments appear here as they fall due.</p>
       ) : (
         <>
           <label className="field">

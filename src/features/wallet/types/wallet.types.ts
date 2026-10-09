@@ -86,8 +86,8 @@ export interface WalletAccess {
   permissions: WalletPermission[]
 }
 
-export type TransactionType = "Funding" | "Loan Disbursement" | "Loan Repayment" | "Transfer" | "Withdrawal" | "Contribution" | "Payment" | "Adjustment" | "Fee" | "Refund"
-export const TRANSACTION_TYPES: TransactionType[] = ["Funding", "Loan Disbursement", "Loan Repayment", "Transfer", "Withdrawal", "Contribution", "Payment", "Adjustment", "Fee", "Refund"]
+export type TransactionType = "Funding" | "Loan Disbursement" | "Loan Repayment" | "Transfer" | "Withdrawal" | "Contribution" | "Dues" | "Payment" | "Adjustment" | "Fee" | "Refund"
+export const TRANSACTION_TYPES: TransactionType[] = ["Funding", "Loan Disbursement", "Loan Repayment", "Transfer", "Withdrawal", "Contribution", "Dues", "Payment", "Adjustment", "Fee", "Refund"]
 export type TransactionStatus = "Pending" | "Processing" | "Completed" | "Failed" | "Reversed" | "Cancelled"
 export const TRANSACTION_STATUSES: TransactionStatus[] = ["Pending", "Processing", "Completed", "Failed", "Reversed", "Cancelled"]
 
@@ -99,6 +99,9 @@ export interface RelatedRecords {
   /** Set when the movement is part of a contribution plan. */
   contributionId?: string
   contributionName?: string
+  /** Set when the movement is a dues payment or a dues wallet recovery. */
+  duesId?: string
+  duesName?: string
   branchId?: string
   branchName?: string
   counterpartWalletId?: string

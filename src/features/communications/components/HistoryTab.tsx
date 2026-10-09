@@ -42,6 +42,7 @@ export function HistoryTab({ ctx }: { ctx: CommunicationsCtx }) {
         (message.subject ?? "").toLowerCase().includes(needle) ||
         message.sender.toLowerCase().includes(needle) ||
         (message.context?.contributionName ?? "").toLowerCase().includes(needle) ||
+        (message.context?.duesPlanName ?? "").toLowerCase().includes(needle) ||
         (message.context?.loanReference ?? "").toLowerCase().includes(needle)
       const matchesChannel = channel === "All" || message.channel === channel
       const matchesStatus = status === "All" || message.status === status
@@ -209,9 +210,9 @@ function MessageDetail({
           ]}
         />
 
-        {message.context && (message.context.contributionName ?? message.context.loanReference) && (
+        {message.context && (message.context.contributionName ?? message.context.duesPlanName ?? message.context.loanReference) && (
           <p className="contribution-hint">
-            Drawn from {message.context.contributionName ?? message.context.loanReference}.
+            Drawn from {message.context.contributionName ?? message.context.duesPlanName ?? message.context.loanReference}.
           </p>
         )}
 

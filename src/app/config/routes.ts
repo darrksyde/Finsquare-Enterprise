@@ -25,6 +25,8 @@ export const viewPaths: Record<View, string> = {
   "contribution-create": "/contributions/new",
   "contribution-detail": "/contributions/:id",
   dues: "/dues",
+  "dues-detail": "/dues/:id",
+  "dues-create": "/dues/new",
   payments: "/payments",
   savings: "/savings",
   loans: "/loans",
@@ -63,6 +65,7 @@ export function resolveView(pathname: string): View {
   if (/^\/loans\/applications\/[^/]+$/.test(pathname)) return "loan-application-detail"
   if (/^\/loans\/[^/]+$/.test(pathname)) return "loan-detail"
   if (/^\/contributions\/[^/]+$/.test(pathname)) return "contribution-detail"
+  if (/^\/dues\/[^/]+$/.test(pathname)) return "dues-detail"
   if (/^\/groups\/[^/]+$/.test(pathname)) return "group-detail"
   if (/^\/branches\/[^/]+$/.test(pathname)) return "branch-detail"
   if (/^\/administrators\/[^/]+$/.test(pathname)) return "administrator-detail"

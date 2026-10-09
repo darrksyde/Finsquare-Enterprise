@@ -80,7 +80,7 @@ export function checkOutflow(opts: {
   const { data, source, amount, kind, allowed, destination, destinationAllowed, mode } = opts
   const dailyLimit = kind === "Transfer" ? source.limits.dailyTransfer : kind === "Disbursement" ? source.limits.dailyDisbursement : source.limits.dailyWithdrawal
   const countedTypes: WalletTransaction["type"][] =
-    kind === "Transfer" ? ["Transfer"] : kind === "Disbursement" ? ["Loan Disbursement"] : kind === "Withdrawal" ? ["Withdrawal"] : ["Contribution"]
+    kind === "Transfer" ? ["Transfer"] : kind === "Disbursement" ? ["Loan Disbursement"] : kind === "Withdrawal" ? ["Withdrawal", "Dues"] : ["Contribution"]
   const used = usedToday(data.transactions, source.id, countedTypes, "debit")
   const checks: Check[] = [
     { label: "Environment allows money movement", ok: mode !== "blocked", detail: mode === "simulated" ? "Demo Mode — movement is simulated only" : mode === "blocked" ? "Money movement is disabled for this environment" : undefined },

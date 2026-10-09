@@ -2,6 +2,7 @@ import {
   contributionsService,
   type MutationContext,
 } from "@/features/contributions/services/contributions.service"
+import { duesService } from "@/features/dues/services/dues.service"
 import { todayISO } from "@/features/loans/domain/calculations"
 import { loansService } from "@/features/loans/services/loans.service"
 import { walletService } from "@/features/wallet/services/wallet.service"
@@ -49,16 +50,17 @@ export interface MemberPaymentResult {
 /**
  * Pays what a member owes, across every module that raised it.
  *
- * The wallet is debited exactly once per item. A contribution debits through its own service,
- * which owns that rule; a loan instalment debits here and is then recorded as already paid. The
- * two paths cannot both take the money. As everywhere else, the backend must re-check the
- * wallet balance, the outstanding amounts and the environment before committing any of this.
+ * The wallet is debited exactly once per item. A contribution and a dues charge debit through
+ * their own service, which owns that rule; a loan instalment debits here and is then recorded as
+ * already paid. The paths cannot both take the money. As everywhere else, the backend must
+ * re-check the wallet balance, the outstanding amounts and the environment before committing this.
  */
 export class MemberPaymentsService {
   constructor(
     private wallet = walletService,
     private contributions = contributionsService,
     private loans = loansService,
+    private dues = duesService,
   ) {}
 
   async recordPayment(
@@ -83,6 +85,23 @@ export class MemberPaymentsService {
             periodKey: obligation.periodKey,
             amount,
             method: contributorMethod[input.method],
+            note: input.note,
+          },
+          ctx,
+        )
+        if (!transaction) continue
+      } else if (obligation.kind === "Dues") {
+        if (!obligation.duesPlanId) continue
+        // The dues service owns the rule that a wallet payment is debited before it is recorded,
+        // so the wallet is never touched twice for the same obligation.
+        const transaction = await this.dues.recordPayment(
+          organizationId,
+          {
+            duesPlanId: obligation.duesPlanId,
+            participantId: obligation.participantId ?? "",
+            amount,
+            method: input.method,
+            chargeId: obligation.duesChargeId,
             note: input.note,
           },
           ctx,

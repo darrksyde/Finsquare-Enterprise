@@ -27,6 +27,7 @@ React 19, TypeScript (strict), Vite, Tailwind v4 (plus a large hand-written `src
 | `member-applications.md` | Member onboarding: application forms, joining rules, the public link, approvals, export |
 | `wallet.md` | Main wallet, branch wallets, member wallets, transfers, approvals, reports |
 | `contributions.md` | Contribution plans, form, recipients, payouts, commission, links |
+| `dues.md` | Dues plans, the charge ledger, wallet liens and recovery, reminders, reports |
 | `communications.md` | Messaging workspace, SMS balance, composing, reminders, delivery || `ui-and-styling.md` | Design primitives, theming, dark mode, icons, CSS conventions |
 | `api-integration.md` | How to replace mocks with a real backend |
 | `deployment.md` | Build, sub-path hosting and browser verification |
@@ -48,6 +49,7 @@ React 19, TypeScript (strict), Vite, Tailwind v4 (plus a large hand-written `src
 12. Communications is an operational tool: who, what, what it costs, send. No campaigns, automation or builders. The SMS balance is funded from the wallet, never a second payment rail. See `communications.md`.
 13. There is **one form builder per feature family and one question library per organization**. It lives in `src/features/forms/` and both loan and member application forms use it — never build a second one, and never import it through a barrel. See `decisions/011-member-application-forms.md`.
 14. A member is created by `membersService.create` and nothing else. Approving an application, open joining and manual add all go through it, so there is one way a member record appears.
+15. A wallet lien is a **claim on the member's own wallet**, never a second ledger and never a reservation: dues are only ever deducted when the money is actually there, and never more than the amount owed. Recovery is capped, oldest due first, and refuses to run twice for the same scope. See `dues.md`.
 
 ## Known gaps / assumptions
 - No automated browser E2E tests; verification is `tsc` + Vitest, plus manual or Playwright MCP browser checks.
@@ -66,3 +68,7 @@ React 19, TypeScript (strict), Vite, Tailwind v4 (plus a large hand-written `src
 - `contributions.service.recordPayment` does not recompute `participant.missedCount`, so a plan can report a stale missed count after a payment. The member profile derives its missed figure from period states and is accurate.
 - The `customer` recipient kind exists in the contribution schema and domain but not in the create form.
 - Roles/permissions are scoped by enabled modules and role scope; this was an assumption, confirm with product.
+- Dues data lives in memory for the session, so a created plan appears in reports only in the session that created it (same as every other mock dataset).
+- A dues charge above the member wallet's single-transaction limit (₦500,000) cannot be recovered in one deduction. The limit belongs to the wallet, so dues does not work around it.
+- The wallet commit and the dues commit are separate in the mock, exactly as they are for a contribution payment; the backend must make the deduction and the charge update atomic.
+- There is no scheduler. Outstanding dues are collected when a member's wallet is credited or when an administrator runs **Recover now**; the backend owns the real recovery schedule.

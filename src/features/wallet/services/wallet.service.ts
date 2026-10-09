@@ -24,6 +24,36 @@ export class WalletService {
   load = () => this.repo.load()
   subscribe = (l: () => void) => this.repo.subscribe(l)
 
+  /**
+   * Listeners told when money lands in a wallet.
+   *
+   * A wallet must not know who claims its balance, so it does not know about dues: it simply
+   * announces that funds arrived and a module that holds a claim on the balance acts on it. The
+   * backend replaces this with a scheduled recovery job and an event consumer.
+   */
+  private creditListeners = new Set<(wallets: Wallet[]) => void>()
+
+  onWalletsCredited(listener: (wallets: Wallet[]) => void): () => void {
+    this.creditListeners.add(listener)
+    return () => {
+      this.creditListeners.delete(listener)
+    }
+  }
+
+  /** Announces credited wallets. A listener must never be able to break a money movement. */
+  private notifyCredited(wallets: (Wallet | undefined)[]) {
+    if (this.creditListeners.size === 0) return
+    const credited = wallets.filter((wallet): wallet is Wallet => Boolean(wallet))
+    if (credited.length === 0) return
+    for (const listener of this.creditListeners) {
+      try {
+        listener(credited)
+      } catch {
+        /* a failed claim may not fail the payment that funded it */
+      }
+    }
+  }
+
   private audit(d: WalletDataset, a: Omit<WalletAuditLog, "id" | "at">): WalletAuditLog[] {
     return [{ id: walletId("aud"), at: now(), ...a }, ...d.audit]
   }
@@ -134,6 +164,8 @@ export class WalletService {
     const t = this.baseTx(w, { type: "Funding", amount: input.amount, direction: "credit", description: input.reference || "Wallet funding", status: simulated ? "Completed" : "Processing", initiatedBy: actor.name, sender: input.senderName || "External sender", metadata: { channel: input.method, ...(simulated ? { simulated: "true" } : {}) }, simulated })
     const wallets = simulated ? this.patchWallet(d, w.id, (x) => ({ ...x, availableBalance: x.availableBalance + input.amount })) : this.patchWallet(d, w.id, (x) => ({ ...x, pendingBalance: x.pendingBalance + input.amount }))
     await this.repo.commit({ wallets, account: this.syncAccount(d, wallets), transactions: [t, ...d.transactions], audit: this.audit(d, { actor: actor.name, action: simulated ? "Funding simulated" : "Funding initiated", walletId: w.id, walletName: w.name, amount: input.amount, reference: t.reference, transactionId: t.id, newState: t.status }) })
+    // Only money that has actually landed is available to claim; a pending bank transfer is not.
+    if (simulated) this.notifyCredited(wallets.filter((x) => x.id === w.id))
     return t
   }
 
@@ -157,6 +189,7 @@ export class WalletService {
     if (internal) {
       const { wallets, txs } = this.move(d, from, internal, input.amount, actor.name, undefined, ref, input.narration, simulated)
       await this.repo.commit({ wallets, account: this.syncAccount(d, wallets), transactions: [...txs, ...d.transactions], audit: this.audit(d, { actor: actor.name, action: simulated ? "Transfer simulated" : "Transfer completed", walletId: from.id, walletName: from.name, amount: input.amount, reference: ref, transactionId: txs[0].id }) })
+      this.notifyCredited(wallets.filter((x) => x.id === internal.id))
       return { reference: ref }
     }
     const t = this.baseTx(from, { type: "Transfer", amount: input.amount, direction: "debit", description: input.narration, status: simulated ? "Completed" : "Processing", initiatedBy: actor.name, recipient: `${input.accountName} · ${input.bankName}`, related: { branchId: from.branchId, branchName: from.branchName, accountNumber: input.accountNumber }, metadata: { reference: ref, bank: input.bankName, narration: input.narration, ...(simulated ? { simulated: "true" } : {}) }, simulated })
@@ -186,6 +219,7 @@ export class WalletService {
     }
     const { wallets, txs } = this.move(d, from, to, input.amount, actor.name, undefined, ref, input.reason, simulated)
     await this.repo.commit({ wallets, account: this.syncAccount(d, wallets), transactions: [...txs, ...d.transactions], transfers: [transfer, ...d.transfers], audit: this.audit(d, { actor: actor.name, action: simulated ? "Transfer simulated" : "Transfer completed", walletId: from.id, walletName: from.name, amount: input.amount, reference: ref, transactionId: txs[0].id, previousState: from.availableBalance.toString(), newState: (from.availableBalance - input.amount).toString() }) })
+    this.notifyCredited(wallets.filter((x) => x.id === to.id))
     return { status: "completed" as const }
   }
 
@@ -198,7 +232,7 @@ export class WalletService {
       walletId: string
       amount: number
       /** The ledger entry this writes. */
-      type: Extract<WalletTransaction["type"], "Contribution" | "Loan Repayment" | "Payment" | "Withdrawal">
+      type: Extract<WalletTransaction["type"], "Contribution" | "Dues" | "Loan Repayment" | "Payment" | "Withdrawal">
       /** The limit bucket it draws on. */
       kind: "Contribution" | "Withdrawal"
       description: string
@@ -256,6 +290,7 @@ export class WalletService {
     })
     const wallets = this.patchWallet(d, to.id, (x) => ({ ...x, availableBalance: round2(x.availableBalance + input.amount) }))
     await this.repo.commit({ wallets, account: this.syncAccount(d, wallets), transactions: [t, ...d.transactions], audit: this.audit(d, { actor: actor.name, action: `${input.type} received`, walletId: to.id, walletName: to.name, amount: input.amount, reference: input.reference, transactionId: t.id, previousState: to.availableBalance.toString(), newState: (to.availableBalance + input.amount).toString() }) })
+    this.notifyCredited(wallets.filter((x) => x.id === to.id))
     return t
   }
 
@@ -328,6 +363,9 @@ export class WalletService {
       transfers: d.transfers.map((t) => (t.approvalId === a.id ? { ...t, status: "Completed" } : t)),
       audit: this.audit(d, { actor: actor.name, action: `${a.kind} approved and completed`, walletId: w.id, walletName: w.name, amount: a.amount, reference: a.reference, previousState: w.availableBalance.toString(), newState: (w.availableBalance - a.amount).toString(), approval: actor.name }),
     })
+    if (a.kind === "Transfer" && a.targetWalletId) {
+      this.notifyCredited(wallets.filter((x) => x.id === a.targetWalletId))
+    }
     return { final: true, approved: true }
   }
 

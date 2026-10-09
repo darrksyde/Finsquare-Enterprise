@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   contributionObligations,
+  duesObligations,
   loanObligations,
   memberMoneySummary,
   memberObligations,
@@ -10,6 +11,7 @@ import type {
   ContributionParticipant,
   ContributionPeriod,
 } from "@/features/contributions/types/contribution.types"
+import type { DuesCharge, DuesParticipant, DuesPlan } from "@/features/dues/types/dues.types"
 import type { Loan, RepaymentScheduleItem } from "@/features/loans/types/loan.types"
 
 const MEMBER = "LFC-002481"
@@ -317,5 +319,142 @@ describe("member money summary", () => {
     })
     expect(summary.activeLoans).toBe(0)
     expect(summary.loansOutstanding).toBe(0)
+  })
+})
+
+
+function duesPlan(overrides: Partial<DuesPlan> = {}): DuesPlan {
+  return {
+    id: "dues-monthly",
+    organizationId: "org-test",
+    name: "Monthly Association Dues",
+    amount: 2_000,
+    currency: "NGN",
+    frequency: "Monthly",
+    startDate: "2026-01-01",
+    scope: "All",
+    lien: { enabled: true, graceDays: 5, autoRecover: true },
+    status: "Active",
+    createdAt: TODAY,
+    createdBy: "Kemi Adebayo",
+    ...overrides,
+  }
+}
+
+function duesParticipant(overrides: Partial<DuesParticipant> = {}): DuesParticipant {
+  return {
+    id: "dues-monthly:LFC-002481",
+    organizationId: "org-test",
+    duesPlanId: "dues-monthly",
+    memberId: MEMBER,
+    memberName: "Adewale Johnson",
+    joinedAt: "2026-01-01",
+    ...overrides,
+  }
+}
+
+function duesCharge(overrides: Partial<DuesCharge> = {}): DuesCharge {
+  return {
+    id: "dues-monthly:LFC-002481:2026-02",
+    organizationId: "org-test",
+    duesPlanId: "dues-monthly",
+    participantId: "dues-monthly:LFC-002481",
+    memberId: MEMBER,
+    periodKey: "2026-02",
+    dueDate: "2026-02-01",
+    expectedAmount: 2_000,
+    paidAmount: 0,
+    state: "Overdue",
+    lienState: "Pending",
+    ...overrides,
+  }
+}
+
+describe("dues obligations", () => {
+  it("counts a due, unpaid charge and ignores one that is not due yet", () => {
+    const obligations = duesObligations({
+      memberId: MEMBER,
+      plans: [duesPlan()],
+      participants: [duesParticipant()],
+      charges: [
+        duesCharge(),
+        duesCharge({ id: "c2", periodKey: "2026-06", dueDate: "2026-06-01", state: "Pending", lienState: "None" }),
+      ],
+      today: TODAY,
+    })
+    expect(obligations).toHaveLength(1)
+    expect(obligations[0]).toMatchObject({
+      kind: "Dues",
+      title: "Monthly Association Dues",
+      duesPlanId: "dues-monthly",
+      duesChargeId: "dues-monthly:LFC-002481:2026-02",
+      outstanding: 2_000,
+      overdue: true,
+    })
+  })
+
+  it("keeps only the unpaid part of a partly paid charge", () => {
+    const obligations = duesObligations({
+      memberId: MEMBER,
+      plans: [duesPlan()],
+      participants: [duesParticipant()],
+      charges: [duesCharge({ paidAmount: 500 })],
+      today: TODAY,
+    })
+    expect(obligations[0].outstanding).toBe(1_500)
+  })
+
+  it("never counts another member's charge", () => {
+    const obligations = duesObligations({
+      memberId: MEMBER,
+      plans: [duesPlan()],
+      participants: [duesParticipant(), duesParticipant({ id: "p2", memberId: OTHER })],
+      charges: [duesCharge(), duesCharge({ id: "c2", participantId: "p2", memberId: OTHER })],
+      today: TODAY,
+    })
+    expect(obligations).toHaveLength(1)
+  })
+
+  it("folds dues into everything the member owes and into the summary", () => {
+    const all = memberObligations({
+      memberId: MEMBER,
+      contributions: [],
+      participants: [],
+      periods: [],
+      loans: [],
+      duesPlans: [duesPlan()],
+      duesParticipants: [duesParticipant()],
+      duesCharges: [duesCharge()],
+      today: TODAY,
+    })
+    expect(all.items.map((item) => item.kind)).toContain("Dues")
+    expect(all.totalDue).toBe(2_000)
+
+    const summary = memberMoneySummary({
+      memberId: MEMBER,
+      participants: [],
+      periods: [],
+      loans: [],
+      duesPlans: [duesPlan()],
+      duesParticipants: [duesParticipant()],
+      duesCharges: [duesCharge()],
+      walletBalance: 0,
+      today: TODAY,
+    })
+    expect(summary.duesOutstanding).toBe(2_000)
+    expect(summary.overdueDues).toBe(1)
+  })
+
+  it("reports no dues when the module supplies none", () => {
+    const summary = memberMoneySummary({
+      memberId: MEMBER,
+      participants: [],
+      periods: [],
+      loans: [],
+      walletBalance: 0,
+      today: TODAY,
+    })
+    expect(summary.duesOutstanding).toBe(0)
+    expect(summary.overdueDues).toBe(0)
   })
 })

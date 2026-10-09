@@ -7,7 +7,7 @@ export type MessageChannel = typeof MESSAGE_CHANNELS[number]
 export const MESSAGE_STATUSES = ["Sent", "Scheduled", "Failed", "Partially sent"] as const
 export type MessageStatus = typeof MESSAGE_STATUSES[number]
 
-export const MESSAGE_CATEGORIES = ["General", "Contribution reminder", "Loan reminder"] as const
+export const MESSAGE_CATEGORIES = ["General", "Contribution reminder", "Loan reminder", "Dues reminder"] as const
 export type MessageCategory = typeof MESSAGE_CATEGORIES[number]
 
 export const DELIVERY_STATUSES = ["Delivered", "Failed", "Pending"] as const
@@ -38,6 +38,8 @@ export interface MessageContext {
   contributionName?: string
   loanId?: EntityId
   loanReference?: string
+  duesPlanId?: EntityId
+  duesPlanName?: string
 }
 
 export interface Message {

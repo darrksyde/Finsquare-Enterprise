@@ -8,6 +8,7 @@ import { FilterBar, SearchInput } from "@/components/data-display/ManagementPrim
 import { Panel, PagedTable, fmtDate, money } from "@/features/loans/components/LoanUi"
 import { MemberWalletPanel } from "@/features/wallet"
 import { FrequencyBadge } from "@/features/contributions/components/ContributionUi"
+import { ParticipantStateBadge } from "@/features/dues/components/DuesUi"
 import { useMember, useMemberMoney, useMembers } from "@/features/members"
 import { MEMBER_ORG_ID } from "../constants"
 import { useMemberApplications } from "../hooks/useMemberApplications"
@@ -167,7 +168,7 @@ export function MembersPage({
   )
 }
 
-type ProfileTab = "overview" | "contributions" | "loans" | "wallet" | "activity"
+type ProfileTab = "overview" | "contributions" | "dues" | "loans" | "wallet" | "activity"
 
 export function MemberProfile({
   memberId,
@@ -259,6 +260,7 @@ function MemberProfileBody({
           tabs={[
             { id: "overview" as ProfileTab, label: "Overview" },
             { id: "contributions" as ProfileTab, label: "Contributions", count: memberMoney.plans.length || undefined },
+            { id: "dues" as ProfileTab, label: "Dues", count: memberMoney.duesPlans.length || undefined },
             { id: "loans" as ProfileTab, label: "Loans", count: memberMoney.loans.length || undefined },
             { id: "wallet" as ProfileTab, label: "Wallet" },
             { id: "activity" as ProfileTab, label: "Activity" },
@@ -368,6 +370,46 @@ function MemberProfileBody({
                       id: "status",
                       header: "Status",
                       render: (loan) => <Badge tone={loanTones[loan.status]}>{loan.status}</Badge>,
+                    },
+                  ]}
+                />
+              </Panel>
+            )}
+
+            {tab === "dues" && (
+              <Panel
+                title="Dues"
+                subtitle={`${memberMoney.duesPlans.length} ${memberMoney.duesPlans.length === 1 ? "plan" : "plans"} this member owes dues on`}
+              >
+                <PagedTable
+                  rows={memberMoney.duesPlans}
+                  rowKey={(plan) => plan.id}
+                  onRowClick={(plan) => navigate("dues-detail", plan.id)}
+                  emptyText="This member is not on a dues plan yet."
+                  columns={[
+                    {
+                      id: "plan",
+                      header: "Plan",
+                      render: (row) => (
+                        <span className="member-cell">
+                          <b>{row.name}</b>
+                          <span>{money(row.amount)} per {row.frequency === "One-time" ? "payment" : "period"}</span>
+                        </span>
+                      ),
+                    },
+                    { id: "paid", header: "Paid", render: (row) => money(memberMoney.duesTotalsFor(row.id)?.paid ?? 0) },
+                    {
+                      id: "outstanding",
+                      header: "Outstanding",
+                      render: (row) => money(memberMoney.duesTotalsFor(row.id)?.outstanding ?? 0),
+                    },
+                    {
+                      id: "state",
+                      header: "Status",
+                      render: (row) => {
+                        const totals = memberMoney.duesTotalsFor(row.id)
+                        return totals ? <ParticipantStateBadge state={totals.state} /> : <Badge tone="neutral">—</Badge>
+                      },
                     },
                   ]}
                 />
@@ -598,6 +640,14 @@ function OverviewTab({
         <p className="contribution-hint">
           {summary.missedContributions} missed {summary.missedContributions === 1 ? "contribution" : "contributions"}.
           A missed contribution stays payable — the plan keeps running.
+        </p>
+      )}
+
+      {summary.duesOutstanding > 0 && (
+        <p className="contribution-hint">
+          {money(summary.duesOutstanding)} of dues outstanding
+          {summary.overdueDues > 0 ? `, ${summary.overdueDues} overdue` : ""}. Unpaid dues are recovered from this member&apos;s
+          wallet when the plan&apos;s lien rules allow it.
         </p>
       )}
     </>

@@ -31,6 +31,13 @@ checks: the wallet must also permit the movement. See `communications.md`.
 it is **organization-only**, because the form is organization configuration rather than day-to-day
 member work. See `member-applications.md`.
 
+## Dues
+`dues.view` · `dues.create` · `dues.update` · `dues.close` · `dues.record_payment` · `dues.recover` ·
+`dues.export`, plus organization-only `dues.manage_rules`, which sets a plan's wallet lien rules —
+they decide when the organization takes money out of a member's wallet, so a branch- or group-scoped
+role cannot set them. `dues.recover` gates the explicit **Recover now** action, not the automatic
+collection that a wallet credit triggers. See `dues.md`.
+
 **The role mocks decide what the signed-in administrator can do.** `administrators.mock.ts` holds
 `allPermissions` (the super-admin, and `currentAdministratorMock`'s role) and each named role. A new
 permission that is added to `permission-catalog.ts` but not to those lists grants nothing and renders

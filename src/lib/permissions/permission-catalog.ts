@@ -19,6 +19,8 @@ export const permissionCatalog: PermissionGroup[] = [
   { label: "Roles", organizationOnly: true, permissions: ["roles.view", "roles.create", "roles.update", "roles.delete"] },
   { label: "Contributions", module: "contributions", permissions: ["contributions.view", "contributions.create", "contributions.update", "contributions.close", "contributions.record_payment", "contributions.withdraw", "contributions.approve_withdrawal", "contributions.export"] },
   { label: "Contribution administration", module: "contributions", organizationOnly: true, permissions: ["contributions.manage_commission", "contributions.manage_access"] },
+  { label: "Dues", module: "dues", permissions: ["dues.view", "dues.create", "dues.update", "dues.close", "dues.record_payment", "dues.recover", "dues.export"] },
+  { label: "Dues administration", module: "dues", organizationOnly: true, permissions: ["dues.manage_rules"] },
   { label: "Loans", module: "loans", permissions: ["loans.view", "loans.create", "loans.update", "loans.approve", "loans.reject", "loans.disburse", "loans.repay", "loans.recover", "loans.export"] },
   { label: "Loan types", module: "loans", organizationOnly: true, permissions: ["loan_products.view", "loan_products.create", "loan_products.update", "loan_products.activate"] },
   { label: "Guarantors", module: "guarantors", permissions: ["guarantors.view", "guarantors.verify", "guarantors.manage"] },

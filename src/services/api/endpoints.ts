@@ -51,6 +51,20 @@ export const endpoints = {
       `/organizations/${organizationId}/contributions/commands`,
     publicContribution: (slug: string) => `/public/contributions/${slug}`,
   },
+  dues: {
+    list: (organizationId: string) => `/organizations/${organizationId}/dues`,
+    detail: (organizationId: string, duesPlanId: string) =>
+      `/organizations/${organizationId}/dues/${duesPlanId}`,
+    participants: (organizationId: string, duesPlanId: string) =>
+      `/organizations/${organizationId}/dues/${duesPlanId}/participants`,
+    charges: (organizationId: string, duesPlanId: string) =>
+      `/organizations/${organizationId}/dues/${duesPlanId}/charges`,
+    transactions: (organizationId: string, duesPlanId: string) =>
+      `/organizations/${organizationId}/dues/${duesPlanId}/transactions`,
+    /** Transactional batch used by the mock-shaped repository; production should expose named commands. */
+    commands: (organizationId: string) =>
+      `/organizations/${organizationId}/dues/commands`,
+  },
   communications: {
     workspace: (organizationId: string) =>
       `/organizations/${organizationId}/communications`,
