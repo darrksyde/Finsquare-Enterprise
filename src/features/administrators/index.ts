@@ -1,0 +1,7 @@
+export { AdministratorsPage } from "./components/AdministratorsPage"
+export { AdministratorDetailsPage } from "./components/AdministratorDetailsPage"
+export { RolesPage } from "./components/RolesPage"
+export { useAdministrators, useAdministrator } from "./hooks/useAdministrators"
+export { useAuthorization } from "./hooks/useAuthorization"
+export { administratorsService } from "./services/administrators.service"
+export type { AdministratorRepository } from "./repositories/administrator.repository"

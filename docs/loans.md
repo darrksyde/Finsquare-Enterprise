@@ -1,0 +1,44 @@
+# Loans
+
+Code: `src/features/loans/`. Pattern: `pages/` → `hooks/useLoans.ts` → `services/loans.service.ts` → `repositories/` (`mock-loan.repository.ts`). Pure maths in `domain/calculations.ts`; form logic in `domain/forms.ts`. Types in `types/loan.types.ts` and `form.types.ts`.
+
+## Lifecycle
+Loan type → Application → Eligibility → Guarantors → Review → Approval (or revised offer → applicant acceptance) → Disbursement → Active loan → Repayments → Overdue/Default → Recovery → Completed.
+
+**Every application goes through the normal approval channel.** There is no "create approved loan" shortcut. `service.createApplication` always starts at `Submitted`.
+
+## Pages
+| View | Page |
+| --- | --- |
+| `loans` | Overview: attention strip for what needs action, a one-line portfolio summary, then two tables (applications requiring action, overdue repayments). Loan types and other destinations live under navigation, not as cards |
+| `loan-applications` | Applications list; **New member application** (`ApplyModal`, loads the published form for the chosen loan type) |
+| `loan-application-detail` | Tabbed: Overview, Form responses, Eligibility, Guarantors, Documents, Activity; Decision and summary panels on the right |
+| `loan-active`, `loan-detail` | Active loans and a single loan. The loan detail keeps 4 tabs (Repayment schedule, Payments, Guarantors, Documents); repayment progress stays visible, while loan terms, borrower/repayment account and the activity log sit behind disclosures. The Recovery panel renders only for a loan in recovery |
+| `loan-disbursements` | Approved applications ready to disburse from the main wallet |
+| `loan-repayments` | Repayments (sidebar item under Disbursements) |
+| `loan-guarantors`, `loan-recovery` | Reached from the Loans overview |
+| `loan-products` / `loan-type-create` | Loan types, application forms, question library. `loan-type-create` (`/loans/products/new`) opens the loan type wizard directly |
+| `/apply/:slug` | Public application page for external applicants |
+
+Terminology: UI says **Loan types**; code/types still say `product`.
+
+## Form builder
+**Shared with member application forms.** The builder itself — the step list, step and field editors,
+document requirements, question library, preview and the applicant renderer — lives in
+`src/features/forms/`, not here; see `member-applications.md` and
+`decisions/011-member-application-forms.md`. What stays in `features/loans/` is the loan half:
+`domain/loan-forms.ts` (the loan system steps, guarantor fields, `extractSubmission`, `newForm`) and
+`types/form.types.ts` (which re-exports the shared vocabulary and adds `LoanApplicationForm` and
+`FormResponse`).
+
+Each loan type has an application form with versions (Draft / Published / Archived). Submissions record the form **version** used, so later edits never change past responses (`FormResponse.versionId`). Reusable questions live in the shared question library. The renderer no longer takes a `LoanProduct`: it takes `LoanFormConfig`, which a product satisfies, so `loan={product}` is all a loan form passes to get the loan step, its limits and guarantors.
+
+**Changing anything under `features/forms/` affects member application forms too** — check `/join/:slug` and `/members/forms` alongside the loan flow.
+
+## Disbursement
+`DisbursementModal` always uses the main wallet (`defaultDisbursementWallet`). Amount-based approval rules (maker-checker) are configured under Wallet. Money movement honours `moneyMovementMode`.
+
+## Rules to keep
+- Loan calculations on the client are previews; the backend must recalculate before committing.
+- External applicants and guarantors do not need FinSquare accounts.
+- Loan pages follow the app-wide page rules in `ui-and-styling.md`: one header via `ShellPage`, no page-level back button, and secondary/derived data behind a `Disclosure` rather than another panel.

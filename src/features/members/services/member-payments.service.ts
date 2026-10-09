@@ -1,0 +1,130 @@
+import {
+  contributionsService,
+  type MutationContext,
+} from "@/features/contributions/services/contributions.service"
+import { todayISO } from "@/features/loans/domain/calculations"
+import { loansService } from "@/features/loans/services/loans.service"
+import { walletService } from "@/features/wallet/services/wallet.service"
+import type { ContributionPaymentMethodId } from "@/features/contributions/types/contribution.types"
+import type { RepaymentMethod } from "@/features/loans/types/loan.types"
+import type { MemberObligation } from "../domain/member-obligations"
+
+/**
+ * How the money arrived. `wallet` moves it out of the member's own wallet; the others record a
+ * payment received outside the system.
+ */
+export type MemberPaymentMethod = "wallet" | "cash" | "bank_transfer"
+
+const contributorMethod: Record<MemberPaymentMethod, ContributionPaymentMethodId> = {
+  wallet: "wallet",
+  cash: "cash",
+  bank_transfer: "bank_transfer",
+}
+
+const repaymentMethod: Record<MemberPaymentMethod, RepaymentMethod> = {
+  wallet: "Wallet debit",
+  cash: "Cash",
+  bank_transfer: "Bank transfer",
+}
+
+export interface MemberPaymentItem {
+  obligation: MemberObligation
+  amount: number
+}
+
+export interface MemberPaymentInput {
+  memberId: string
+  memberName: string
+  items: MemberPaymentItem[]
+  method: MemberPaymentMethod
+  note?: string
+}
+
+export interface MemberPaymentResult {
+  recorded: number
+  total: number
+  simulated: boolean
+}
+
+/**
+ * Pays what a member owes, across every module that raised it.
+ *
+ * The wallet is debited exactly once per item. A contribution debits through its own service,
+ * which owns that rule; a loan instalment debits here and is then recorded as already paid. The
+ * two paths cannot both take the money. As everywhere else, the backend must re-check the
+ * wallet balance, the outstanding amounts and the environment before committing any of this.
+ */
+export class MemberPaymentsService {
+  constructor(
+    private wallet = walletService,
+    private contributions = contributionsService,
+    private loans = loansService,
+  ) {}
+
+  async recordPayment(
+    organizationId: string,
+    input: MemberPaymentInput,
+    ctx: MutationContext,
+  ): Promise<MemberPaymentResult> {
+    const date = todayISO()
+    let total = 0
+    let recorded = 0
+
+    for (const { obligation, amount } of input.items) {
+      if (amount <= 0) continue
+
+      if (obligation.kind === "Contribution") {
+        if (!obligation.contributionId || !obligation.participantId) continue
+        const transaction = await this.contributions.recordPayment(
+          organizationId,
+          {
+            contributionId: obligation.contributionId,
+            participantId: obligation.participantId,
+            periodKey: obligation.periodKey,
+            amount,
+            method: contributorMethod[input.method],
+            note: input.note,
+          },
+          ctx,
+        )
+        if (!transaction) continue
+      } else {
+        if (!obligation.loanId) continue
+        if (input.method === "wallet") {
+          const wallet = await this.wallet.ensureMemberWallet(
+            { memberId: input.memberId, memberName: input.memberName },
+            ctx.actor,
+          )
+          await this.wallet.spend(
+            {
+              walletId: wallet.id,
+              amount,
+              type: "Loan Repayment",
+              kind: "Withdrawal",
+              description: `${obligation.title} — repayment`,
+              reference: obligation.loanId,
+              counterparty: input.memberName,
+            },
+            ctx.actor,
+            ctx.mode,
+          )
+        }
+        await this.loans.recordRepayment({
+          loanId: obligation.loanId,
+          amount,
+          method: repaymentMethod[input.method],
+          date,
+          reference: "",
+          note: input.note,
+        })
+      }
+
+      total += amount
+      recorded += 1
+    }
+
+    return { recorded, total: Math.round(total * 100) / 100, simulated: ctx.mode !== "live" }
+  }
+}
+
+export const memberPaymentsService = new MemberPaymentsService()
