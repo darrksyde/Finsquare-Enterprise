@@ -1,0 +1,28 @@
+import { configureApiAuth } from "@/services/api"
+import { env } from "@/app/config/env"
+import { ApiAuthRepository } from "../repositories/api-auth.repository"
+import { MockAuthRepository } from "../repositories/mock-auth.repository"
+import type { AuthRepository } from "../repositories/auth.repository"
+import type { Session, SignInCredentials } from "../types"
+
+const repository: AuthRepository = env.VITE_ENABLE_MOCKS ? new MockAuthRepository() : new ApiAuthRepository()
+
+// The access token lives for the session only; `apiClient` reads it through this provider.
+let accessToken: string | null = null
+configureApiAuth(() => accessToken)
+
+export const authService = {
+  async signIn(credentials: SignInCredentials): Promise<Session> {
+    const result = await repository.signIn(credentials)
+    accessToken = result.accessToken
+    return result.session
+  },
+
+  async signOut(): Promise<void> {
+    try {
+      await repository.signOut()
+    } finally {
+      accessToken = null
+    }
+  },
+}

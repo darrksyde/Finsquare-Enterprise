@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react"
 import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
+import { EnvironmentNotice } from "@/components/feedback/EnvironmentNotice"
 import { Badge, IconButton } from "@/components/ui"
 import { X } from "@/icons"
 import type { View } from "@/types"
 import { useWallet } from "../hooks/useWallet"
 import type { Wallet, WalletStatus, TransactionStatus } from "../types/wallet.types"
-import { Landmark } from "@/icons"
 
 export { money } from "../domain/wallet.rules"
 export { fmtDate } from "@/features/loans/components/LoanUi"
@@ -29,22 +29,8 @@ export function WalletPage({ children, bare, ...props }: WalletPageProps & { chi
   if (bare) return <>{children(ctx)}</>
   return (
     <div className="page">
-      <ModeBanner mode={ctx.mode} environment={ctx.environment} />
+      <EnvironmentNotice mode={ctx.mode} />
       {children(ctx)}
-    </div>
-  )
-}
-
-export function ModeBanner({ mode, environment }: { mode: "live" | "simulated" | "blocked"; environment: string }) {
-  if (mode === "live") return null
-  return (
-    <div className="wallet-banner" data-mode={mode} role="status">
-      <Landmark size={15} />
-      <span>
-        {mode === "simulated"
-          ? "Demo Mode — wallets use mock balances. Funding, transfers and disbursements are simulated and no real money moves."
-          : `Environment is ${environment.replace("_", " ")} — wallets can be configured, but money movement is disabled.`}
-      </span>
     </div>
   )
 }

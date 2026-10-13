@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import { ActionMenu, Badge, Disclosure } from "@/components/ui"
-import { HandCoins, Landmark } from "@/icons"
+import { HandCoins } from "@/icons"
 import type { View } from "@/types"
 import { useContributions } from "../hooks/useContributions"
 import { CONTRIBUTION_ORG_ID } from "../constants"
@@ -51,20 +51,6 @@ export function ContributionPage({
 
   const { data, ...rest } = resource
   return <>{children({ ...props, ...rest, data } as ContributionCtx)}</>
-}
-
-export function ModeBanner({ mode, environment }: { mode: "live" | "simulated" | "blocked"; environment: string }) {
-  if (mode === "live") return null
-  return (
-    <div className="contribution-banner" data-mode={mode} role="status">
-      <Landmark size={15} />
-      <span>
-        {mode === "simulated"
-          ? "Demo Mode — contributions, payouts and commissions are recorded but no real money moves."
-          : `Environment is ${environment.replace("_", " ")} — contributions can be configured, but money movement is disabled.`}
-      </span>
-    </div>
-  )
 }
 
 const typeTones: Record<ContributionType, Tone> = { Fixed: "blue", Flexible: "neutral", Target: "amber" }

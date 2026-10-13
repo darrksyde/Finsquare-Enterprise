@@ -10,11 +10,11 @@ import {
 } from "@/app/config/module-registry"
 import { useAppRoute } from "@/app/routes/useAppRoute"
 import { useWorkspace } from "@/app/providers/WorkspaceProvider"
-import { Brand, Sidebar } from "@/components/layout/AppShell"
+import Brand from "@/components/layout/Brand"
+import { Sidebar } from "@/components/layout/AppShell"
 import { IconButton } from "@/components/ui"
 import {
   DependencyModal,
-  ImportModal,
 } from "@/components/feedback/ApplicationOverlays"
 import {
   AccessDeniedState,
@@ -28,7 +28,9 @@ import { AccessControls, TransactionTable, WalletList, WalletOverview, WalletPag
 import ReportsPage from "@/features/reports/pages/ReportsPage"
 import OrganizationProfilePage from "@/features/organization/components/OrganizationProfile"
 import OnboardingFlow from "@/features/onboarding/components/OnboardingFlow"
-import DemoBanner from "@/features/onboarding/components/DemoBanner"
+import AuthPage from "@/features/auth/components/AuthPage"
+import { useAuth } from "@/features/auth/hooks/useAuth"
+import EnvironmentBanner from "@/features/onboarding/components/EnvironmentBanner"
 import Breadcrumbs from "@/components/navigation/Breadcrumbs"
 import SettingsTabs from "@/features/settings/components/SettingsTabs"
 import { settingsTabFor } from "@/app/config/navigation"
@@ -45,6 +47,7 @@ import {
 } from "@/features/contributions"
 import {
   AddMemberModal,
+  ImportMembersModal,
   MemberApplicationDetailPage,
   MemberApplicationFormsPage,
   MemberApplicationsPage,
@@ -109,15 +112,27 @@ export default function FinSquareApp() {
   const { state, dispatch, enabledModules, isLive } = useWorkspace()
   const { view, entityId, navigate } = useAppRoute()
   const { can } = useAuthorization()
+  const { signOut } = useAuth()
   const { pathname } = useLocation()
   const [overlay, setOverlay] = useState<Overlay>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState("")
   const [dependency, setDependency] = useState<EnterpriseModuleId | null>(null)
+  /** Which pre-shell screen to show while there is no session; "auto" follows the workspace state. */
+  const [authScreen, setAuthScreen] = useState<"auto" | "signup">("auto")
 
   const docsReady = state.complianceDocuments.every(
     (document) => document === "Approved",
   )
+
+  const identity = state.session?.name || state.admin.name || "Admin User"
+  const identityInitials = identity
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+  const handleSignOut = () => { void signOut() }
 
   const notify = (text: string) => {
     setToast(text)
@@ -172,12 +187,7 @@ export default function FinSquareApp() {
     content = <AccessDeniedState />
   } else if (view === "overview") {
     content = (
-      <Dashboard
-        live={isLive}
-        setView={navigate}
-        onImport={() => setOverlay("import")}
-        notify={notify}
-      />
+      <Dashboard live={isLive} setView={navigate} onImport={() => setOverlay("import")} />
     )
   } else if (view === "members") {
     content = (
@@ -379,10 +389,11 @@ export default function FinSquareApp() {
           dispatch({ type: "preferences/accent-changed", value: accent })
         }
         notify={notify}
+        onSignOut={handleSignOut}
       />
     )
   } else {
-    content = <GenericPage view={view} live={isLive} notify={notify} />
+    content = <GenericPage view={view} navigate={navigate} />
   }
 
   if (pathname.startsWith("/apply/")) return <PublicApplicationPage slug={pathname.split("/")[2] ?? ""} />
@@ -391,6 +402,21 @@ export default function FinSquareApp() {
     const segments = pathname.split("/")
     // `/contribute/:slug` is the pool link; `/contribute/:slug/m/:memberId` is a member's own link.
     return <PublicContributionPage slug={segments[2] ?? ""} memberId={segments[3] === "m" ? segments[4] : undefined} />
+  }
+
+  // Authentication gate. The public links above stay reachable without a session; the login page
+  // itself switches to sign up, which is the onboarding flow creating the administrator account.
+  if (!state.session) {
+    return authScreen === "signup" ? (
+      <OnboardingFlow onLogin={() => setAuthScreen("auto")} />
+    ) : (
+      <AuthPage
+        onSignUp={() => {
+          dispatch({ type: "onboarding/restarted" })
+          setAuthScreen("signup")
+        }}
+      />
+    )
   }
   if (!state.onboardingCompleted) return <OnboardingFlow />
 
@@ -403,6 +429,7 @@ export default function FinSquareApp() {
         open={sidebarOpen}
         close={() => setSidebarOpen(false)}
         can={can}
+        onSignOut={handleSignOut}
       />
       <div className="app-main">
         <header className="mobile-header">
@@ -412,10 +439,10 @@ export default function FinSquareApp() {
             onClick={() => setSidebarOpen(true)}
           />
           <Brand />
-          <div className="avatar">AD</div>
+          <div className="avatar">{identityInitials}</div>
         </header>
         <main>
-          <DemoBanner environment={state.environment} onAction={() => navigate("corporate")} />
+          <EnvironmentBanner environment={state.environment} onAction={() => navigate("corporate")} />
           <Breadcrumbs view={view} navigate={navigate} />
           <Suspense fallback={<LoadingState label="Loading page…" />}>
             {settingsTabFor(view) && canAccessView(view, enabledModules, can) && <SettingsTabs view={view} navigate={navigate} enabled={enabledModules} can={can} />}
@@ -425,12 +452,12 @@ export default function FinSquareApp() {
       </div>
 
       {overlay === "import" && (
-        <ImportModal
+        <ImportMembersModal
           onClose={() => setOverlay(null)}
-          onComplete={() => {
+          onComplete={(imported) => {
             setOverlay(null)
             navigate("members")
-            notify("2,421 members imported successfully")
+            notify(`${imported.toLocaleString()} members imported successfully`)
           }}
         />
       )}

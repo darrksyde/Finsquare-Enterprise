@@ -143,7 +143,7 @@ export function RecordDuesPaymentModal({
         placeholder="e.g. cash received at the Ikeja branch"
       />
       {ctx.mode !== "live" && (
-        <p className="contribution-hint">Demo mode: this payment is recorded but no real money moves.</p>
+        <p className="contribution-hint">Money movement is not enabled yet, so no money leaves the wallet.</p>
       )}
       {error && <p className="form-error">{error}</p>}
     </ActionModal>

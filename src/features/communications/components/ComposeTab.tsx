@@ -295,7 +295,7 @@ export function ComposeTab({ ctx, notify }: { ctx: CommunicationsCtx; notify: (m
           title="Send this message?"
           onClose={() => setConfirming(false)}
           onSubmit={send}
-          submitLabel={ctx.mode === "simulated" ? `Send ${money(cost.total)} (demo)` : `Send ${money(cost.total)}`}
+          submitLabel={`Send ${money(cost.total)}`}
           wide
         >
           <KV
@@ -321,12 +321,6 @@ export function ComposeTab({ ctx, notify }: { ctx: CommunicationsCtx; notify: (m
               {recipients.length > 1 ? `\n\n…and ${recipients.length - 1} more.` : ""}
             </p>
           </div>
-
-          {ctx.mode !== "live" && (
-            <p className="contribution-hint">
-              Demo mode: the message is recorded and the balance moves, but nothing is really delivered.
-            </p>
-          )}
         </ActionModal>
       )}
     </>

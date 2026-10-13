@@ -20,7 +20,7 @@ The UI does not construct backend URLs or consume raw DTOs.
 
 - **Component state:** open panels, wizard steps, selected tabs, filters.
 - **Feature state:** data loading, errors, mutations, and retry logic in hooks.
-- **Application state:** organization environment, modules, compliance/account readiness, and user preferences.
+- **Application state:** organization environment, modules, compliance/account readiness, the signed-in session, and user preferences.
 - **Server state:** repository-backed domain data. The current member repository uses mocks by default.
 
 ## Domain boundaries
@@ -39,7 +39,9 @@ Branches are structural. Groups are purpose-based collections and may optionally
 
 ## Routing
 
-Paths are centralized in `app/config/routes.ts`. Navigation metadata is separate but uses the same view identifiers. Route protection will compose authentication, organization membership, module availability, permissions, and environment capabilities.
+Paths are centralized in `app/config/routes.ts`. Navigation metadata is separate but uses the same view identifiers. Route protection composes authentication, organization membership, module availability, permissions, and environment capabilities.
+
+Three short-circuits run before the shell in `app.tsx`, in this order: the public links (`/apply/`, `/join/`, `/contribute/`), the login gate, and the onboarding flow. See `authentication.md`.
 
 ## Accessibility
 
@@ -51,6 +53,6 @@ Several dense demo pages remain grouped by related feature rather than split int
 
 ## Current state (read this first)
 - Single-page app; all data is mock data behind repositories. See `README.md` for the document map.
-- Cross-feature workspace state (modules, environment, theme, accent, organization profile, onboarding, corporate account) lives in `WorkspaceProvider`. Anything else belongs in its feature.
+- Cross-feature workspace state (modules, environment, theme, accent, organization profile, onboarding, corporate account, session) lives in `WorkspaceProvider`. Anything else belongs in its feature.
 - Navigation is a typed `View` union, not route components (see `routing-and-navigation.md`).
 - New feature checklist: domain model → types → zod schema → repository interface + mock → service → hook → UI → view/route → permissions → module/nav config → loading/empty/error states → docs.

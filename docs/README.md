@@ -22,6 +22,8 @@ React 19, TypeScript (strict), Vite, Tailwind v4 (plus a large hand-written `src
 | `routing-and-navigation.md` | `View` enum routing, sidebar, breadcrumbs, settings tabs, access rules |
 | `modules.md` | Module registry and the feature map (what lives where) |
 | `permissions.md` | Permission model, scoping by module, wallet-level access |
+| `authentication.md` | Login gate, session lifetime, signing up and logging out |
+| `branding.md` | FinSquare's own mark vs a community's logo: what to drop in, and where each appears |
 | `onboarding.md` | Onboarding flow, demo mode and the corporate-account lifecycle |
 | `loans.md` | Loan domain, application lifecycle, form builder, disbursement |
 | `member-applications.md` | Member onboarding: application forms, joining rules, the public link, approvals, export |
@@ -53,9 +55,10 @@ React 19, TypeScript (strict), Vite, Tailwind v4 (plus a large hand-written `src
 
 ## Known gaps / assumptions
 - No automated browser E2E tests; verification is `tsc` + Vitest, plus manual or Playwright MCP browser checks.
-- Mock transaction PIN is `1234` (`MOCK_TRANSACTION_PIN` in the wallet service). A real backend must verify PINs server-side.
+- Transaction PIN is any 4 digits. The service enforces the format; a real backend must verify the PIN itself and rate-limit attempts.
 - Withdrawals exist as permissions and limits but have no UI.
 - Onboarding, organization profile, theme and corporate-account details persist to `localStorage` only.
+- The session is **not** persisted. The login gate is a mock that accepts any well-formed email and password, and reloading the page signs you out. There is no password reset, account recovery, lockout, MFA or refresh token — see `authentication.md`.
 - Contribution mutations live in memory for the session: the mock repository scopes to the organization and notifies subscribers, but nothing survives a page reload (same as members/wallet mocks).
 - `features/reports` and the contribution reports read the same mock datasets, so a new plan appears in reports only in the session that created it.
 - There is no cross-plan payout queue: withdrawals and approvals are handled inside each contribution (`/contributions/:id`, Activity tab). A contribution-wide or organization-wide payout worklist is a deliberate omission (see `decisions/007-one-header-and-progressive-disclosure.md`).

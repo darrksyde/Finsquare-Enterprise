@@ -20,6 +20,7 @@ export function DataTable<T>({
   empty,
   selectedKeys,
   onSelectionChange,
+  showSerial = true,
 }: {
   rows: T[]
   columns: DataTableColumn<T>[]
@@ -32,10 +33,13 @@ export function DataTable<T>({
   empty: ReactNode
   selectedKeys?: ReadonlySet<string>
   onSelectionChange?: (keys: Set<string>) => void
+  /** Row number column. Continuous across pages, so it needs the caller's `page`. */
+  showSerial?: boolean
 }) {
   if (rows.length === 0) return <>{empty}</>
   const first = (page - 1) * pageSize + 1
   const last = Math.min(total, page * pageSize)
+  const serialStart = (page - 1) * pageSize
 
   return (
     <>
@@ -61,6 +65,7 @@ export function DataTable<T>({
                   />
                 </th>
               )}
+              {showSerial && <th className="serial-cell">#</th>}
               {columns.map((column) => (
                 <th key={column.id} className={column.className}>
                   {column.header}
@@ -69,7 +74,7 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row, index) => (
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
@@ -103,6 +108,7 @@ export function DataTable<T>({
                     />
                   </td>
                 )}
+                {showSerial && <td className="serial-cell">{serialStart + index + 1}</td>}
                 {columns.map((column) => (
                   <td key={column.id} className={column.className}>
                     {column.render(row)}

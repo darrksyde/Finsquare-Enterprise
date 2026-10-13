@@ -30,17 +30,13 @@ export function TopUpBalance({
 
   const error =
     firstError(topUpSchema.safeParse({ walletId, amount })) ??
-    (ctx.mode === "blocked" ? "Money movement is disabled in this environment." : null) ??
+    (ctx.mode === "blocked" ? "Money movement is unavailable in this workspace." : null) ??
     (wallet && amount > wallet.availableBalance ? `The wallet holds ${money(wallet.availableBalance)}.` : null)
 
   const submit = async () => {
     if (error) throw new Error(error)
     const result = await ctx.topUpBalance({ amount, walletId })
-    notify(
-      ctx.mode === "simulated"
-        ? `Demo mode: ${money(amount)} top-up simulated — the SMS balance is ${money(result.balance)}`
-        : `SMS balance topped up to ${money(result.balance)}`,
-    )
+    notify(`SMS balance topped up to ${money(result.balance)}`)
   }
 
   return (
@@ -48,7 +44,7 @@ export function TopUpBalance({
       title="Top up SMS balance"
       onClose={onClose}
       onSubmit={submit}
-      submitLabel={ctx.mode === "simulated" ? "Simulate top-up" : `Top up ${money(amount)}`}
+      submitLabel={`Top up ${money(amount)}`}
       disabled={Boolean(error)}
     >
       {spendable.length === 0 ? (
@@ -90,7 +86,7 @@ export function TopUpBalance({
       {error && <p className="contribution-hint contribution-debit">{error}</p>}
       {ctx.mode !== "live" && !error && (
         <p className="contribution-hint">
-          Demo mode: the wallet is debited and the balance rises, but no real money moves.
+          Money movement is not enabled yet. Connect your corporate account to fund the balance from a wallet.
         </p>
       )}
     </ActionModal>

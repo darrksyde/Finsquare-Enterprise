@@ -3,12 +3,12 @@ import { ArrowLeft, Plus } from "@/icons"
 import { ActionMenu, Button, Tabs } from "@/components/ui"
 import { ShellPage } from "@/components/layout/ShellPage"
 import type { AttentionItem } from "@/components/feedback/AttentionStrip"
+import { EnvironmentNotice } from "@/components/feedback/EnvironmentNotice"
 import {
   ContributionPage,
   ContributionStatusBadge,
   ContributionTypeBadge,
   FrequencyBadge,
-  ModeBanner,
   Panel,
   RecipientNote,
 } from "../components/ContributionUi"
@@ -116,7 +116,7 @@ function DetailBody({ ctx }: { ctx: ContributionCtx }) {
           </div>
         }
       >
-        <ModeBanner mode={ctx.mode} environment={ctx.environment} />
+        <EnvironmentNotice mode={ctx.mode} />
 
         <Tabs
           tabs={[

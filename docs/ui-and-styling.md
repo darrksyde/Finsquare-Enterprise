@@ -23,7 +23,7 @@ Rules that follow from it:
 2. **One navigation level at a time.** Module tabs belong to the module index; a detail screen has its own tabs and never both. Inside a tab, switch views with a `<select>` in the panel's `actions` slot (see `PlanActivity`, `PlanReports`) — never a second `Tabs` row.
 3. **Module = front door + list; data lives in the entity.** A front door shows what needs attention and the list of records. Money detail, history and reports live inside the record that owns them.
 4. **Advanced detail behind disclosure**, never in the default view.
-5. **Tables show decisions, not inventories.** Default columns answer "what do I do next?".
+5. **Tables show decisions, not inventories.** Default columns answer "what do I do next?". Every table also numbers its rows: `DataTable` renders a narrow `#` column by default (`showSerial`), numbered continuously across pages from the caller's `page` and `pageSize`. Pass `showSerial={false}` only where the rows already carry their own sequence number, as the loan repayment schedule does.
 6. **State changes behind one control** (`ActionMenu`), not a row of always-visible buttons.
 7. **One vertical rhythm.** `.page > * + *` owns the gap between blocks (see below).
 
@@ -187,11 +187,11 @@ Brand swatches (colour pickers, brand preview) paint arbitrary user hex, so a to
 ## Components
 - Primitives: `src/components/ui` (`Field` `onChange(value: string)`, `SelectField` takes `options: string[]`).
 - Loan/wallet shared UI: `features/loans/components/LoanUi.tsx` (`Panel`, `PagedTable`, `Stats`, `KV`, `Tabs`, `ActionModal`, `NumField`, `TextArea`, `ExportButtons`, formatters `money`, `compactMoney`, `fmtDate`). Reuse these rather than rebuilding.
-- Feature shells: `features/contributions/components/ContributionUi.tsx` (`ContributionPage` tab shell, badges, `RecipientChip`, `ModeBanner`) re-exports those primitives and adds contribution-specific classes (`.contribution-*`, `.recipient-chip`, `.public-contribution-*`). Put a page inside `ContributionPage` instead of re-implementing tabs, loading and error states.
+- Feature shells: `features/contributions/components/ContributionUi.tsx` (`ContributionPage` tab shell, badges, `RecipientChip`) re-exports those primitives and adds contribution-specific classes (`.contribution-*`, `.recipient-chip`, `.public-contribution-*`). Put a page inside `ContributionPage` instead of re-implementing tabs, loading and error states.
 - Icons come from `src/icons.tsx` and are CSS-mask `span.mask-icon` elements, not SVG. Style icons with `color`/`width`, not `fill`/`stroke`. Add new icons to the mask map there.
-  - **Never write a container-scoped bare `span` rule around an icon.** `.mask-icon` is `flex: 0 0 auto` (specificity **0,1,0**), so a rule like `.demo-banner span { flex: 1 }` (**0,1,1**) outranks it — that stretched the icon element to 382px and centred its 15px glyph in the leftover space, which read as a misaligned banner. Give the element that needs the styling its own class (`.demo-banner-text`). The same trap applies to any `flex`/`width` you set on an ancestor's descendants.
+  - **Never write a container-scoped bare `span` rule around an icon.** `.mask-icon` is `flex: 0 0 auto` (specificity **0,1,0**), so a rule like `.env-banner span { flex: 1 }` (**0,1,1**) outranks it — that stretched the icon element to 382px and centred its 15px glyph in the leftover space, which read as a misaligned banner. Give the element that needs the styling its own class (`.env-banner-text`). The same trap applies to any `flex`/`width` you set on an ancestor's descendants.
 - Search inputs: `SearchInput` in `data-display/ManagementPrimitives`; the icon is absolutely positioned inside `.search`.
-- Org branding: `OrgAvatar` shows the uploaded logo or initials.
+- Branding: `components/layout/Brand.tsx` exports `Brand` (mark + wordmark) and `BrandMark` (the mark alone, for the login and onboarding welcome cards). An organisation's own logo is separate — `OrgAvatar`. See `branding.md`.
 
 ## Accessibility
 Buttons for actions, `aria-pressed` on toggle cards, `aria-label` on icon-only controls, `role="status"` on banners, visible focus states.

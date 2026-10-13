@@ -3,147 +3,59 @@ import AccentPicker from "./AccentPicker"
 import OrgAvatar from "@/components/layout/OrgAvatar"
 import type { ThemePreference } from "@/app/providers/WorkspaceProvider"
 import {
-  Activity,
   Blocks,
-  Check,
   CheckCircle2,
   CreditCard,
   Folder,
-  GitBranch,
-  Network,
-  Plus,
-  ReceiptText,
-  Settings,
-  ShieldCheck,
   WalletCards,
 } from "@/icons"
 import { Button, Badge, Progress, SectionHeader } from "@/components/ui"
 import type { View } from "@/types"
 import type { IconType } from "@/icons"
 
-export function GenericPage({
-  view,
-  live,
-  notify,
-}: {
-  view: View
-  live: boolean
-  notify: (s: string) => void
-}) {
-  const config: Record<string, [string, string, IconType]> = {
+export function GenericPage({ view, navigate }: { view: View; navigate: (view: View) => void }) {
+  const config: Record<string, [string, string, IconType, string, { label: string; view: View }?]> = {
     payments: [
       "Payments",
       "Track and reconcile member payments across all enabled products.",
       CreditCard,
+      "Payments recorded against a contribution, a dues plan or a loan appear here as they are collected. Record one from a member's profile.",
+      { label: "Go to members", view: "members" },
     ],
     savings: [
       "Savings",
       "Create member savings products and monitor target progress.",
       WalletCards,
-    ],
-    repayments: [
-      "Repayments",
-      "Track loan repayment schedules and recorded collections.",
-      ReceiptText,
-    ],
-    guarantors: [
-      "Guarantors",
-      "Manage guarantor requests and approval activity.",
-      ShieldCheck,
+      "Savings products you create will be listed here with their target progress. Until one exists there is nothing to show.",
     ],
     documents: [
       "Documents",
       "Store and organize important files for your organization.",
       Folder,
-    ],
-    reports: [
-      "Reports",
-      "Understand member, financial and operational activity.",
-      Activity,
-    ],
-    settings: [
-      "Workspace settings",
-      "Configure organization details, modules and operational preferences.",
-      Settings,
-    ],
-    groups: [
-      "Groups",
-      "Organize members into working groups and flexible segments.",
-      Network,
-    ],
-    branches: [
-      "Branches",
-      "Manage geographic branches and their local administrators.",
-      GitBranch,
+      "Files you upload for your organization appear here. Nothing has been uploaded yet.",
     ],
   }
-  const [title, description, Icon] = config[view] || [
+  const [title, description, Icon, empty, action] = config[view] || [
     "Workspace",
     "Manage your organization.",
     Blocks,
+    "There is nothing to show in this area yet.",
   ]
   return (
     <div className="page">
-      <SectionHeader
-        eyebrow="LAGOS FARMERS COOPERATIVE"
-        title={title}
-        description={description}
-        actions={
-          <Button
-            icon={Plus}
-            disabled={!live && view === "payments"}
-            onClick={() => notify(`${title} action opened`)}
-          >
-            New {title.toLowerCase().replace(/s$/, "")}
+      <SectionHeader eyebrow="WORKSPACE" title={title} description={description} />
+      <section className="panel generic-main">
+        <div className="generic-icon">
+          <Icon size={24} />
+        </div>
+        <b>Nothing here yet</b>
+        <p>{empty}</p>
+        {action && (
+          <Button variant="secondary" onClick={() => navigate(action.view)}>
+            {action.label}
           </Button>
-        }
-      />
-      <div className="generic-grid">
-        <section className="panel generic-main">
-          <div className="generic-icon">
-            <Icon size={24} />
-          </div>
-          <b>{title} workspace</b>
-          <p>
-            This module is enabled and ready to configure. Use the module settings
-            to explore the complete product story.
-          </p>
-          <Button
-            variant="secondary"
-            onClick={() => notify(`${title} configuration opened`)}
-          >
-            Open configuration
-          </Button>
-        </section>
-        <section className="panel">
-          <div className="panel-head">
-            <div>
-              <b>Module status</b>
-              <span>Configuration overview</span>
-            </div>
-          </div>
-          <div className="settings-list">
-            <div>
-              <span>Module</span>
-              <Badge tone="green">Enabled</Badge>
-            </div>
-            <div>
-              <span>Sample data</span>
-              <b>Available</b>
-            </div>
-            <div>
-              <span>Financial operations</span>
-              <Badge tone={live ? "green" : "blue"}>
-                {live ? "Live" : "Test mode"}
-              </Badge>
-            </div>
-            <div>
-              <span>Last updated</span>
-              <b>Today, 10:42</b>
-            </div>
-          </div>
-        </section>
-      </div>
+        )}
+      </section>
     </div>
   )
 }
@@ -157,6 +69,7 @@ export function SettingsPage({
   notify,
   organization,
   setLogo,
+  onSignOut,
 }: {
   organization: { name: string; logo: string }
   setLogo: (value: string) => void
@@ -165,6 +78,7 @@ export function SettingsPage({
   accent: string
   setAccent: (value: string) => void
   notify: (text: string) => void
+  onSignOut: () => void
 }) {
   return (
     <div className="page">
@@ -172,6 +86,7 @@ export function SettingsPage({
         eyebrow="WORKSPACE SETTINGS"
         title="Appearance & branding"
         description="Choose a comfortable interface theme and align the workspace with your organization’s brand."
+        actions={<Button variant="secondary" onClick={onSignOut}>Sign out</Button>}
       />
       <div className="appearance-layout">
         <section className="panel appearance-panel">
@@ -213,7 +128,7 @@ export function SettingsPage({
           <div className="panel-head">
             <div>
               <b>Organization logo</b>
-              <span>Shown in the sidebar and on member-facing pages. PNG, JPG or SVG, up to 512 KB.</span>
+              <span>Shown in the workspace switcher, on the organization page and in previews. PNG, JPG or SVG, up to 512 KB.</span>
             </div>
           </div>
           <div className="logo-upload" style={{ padding: 16 }}>
@@ -274,11 +189,9 @@ export function SettingsPage({
                 <Badge tone="green">LIVE</Badge>
               </div>
               <Progress value={72} />
-              <div className="brand-preview-actions">
-                <Button variant="secondary">Secondary action</Button>
-                <Button onClick={() => notify("Brand preview action selected")}>
-                  Primary action
-                </Button>
+              <div className="brand-preview-actions" aria-hidden="true">
+                <span className="btn btn-secondary">Secondary action</span>
+                <span className="btn btn-primary">Primary action</span>
               </div>
             </div>
           </div>

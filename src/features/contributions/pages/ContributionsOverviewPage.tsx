@@ -4,6 +4,7 @@ import { Button } from "@/components/ui"
 import { SearchInput } from "@/components/data-display/ManagementPrimitives"
 import { ShellPage } from "@/components/layout/ShellPage"
 import type { AttentionItem } from "@/components/feedback/AttentionStrip"
+import { EnvironmentNotice } from "@/components/feedback/EnvironmentNotice"
 import { CONTRIBUTION_FORMS, CONTRIBUTION_TYPES } from "../types/contribution.types"
 import {
   ContributionFormBadge,
@@ -11,7 +12,6 @@ import {
   ContributionStatusBadge,
   ContributionTypeBadge,
   FrequencyBadge,
-  ModeBanner,
   PagedTable,
   Panel,
 } from "../components/ContributionUi"
@@ -104,7 +104,7 @@ function FrontDoor({ ctx }: { ctx: ContributionCtx }) {
         ) : undefined
       }
     >
-      <ModeBanner mode={ctx.mode} environment={ctx.environment} />
+      <EnvironmentNotice mode={ctx.mode} />
 
       <Panel
         title="Plans"

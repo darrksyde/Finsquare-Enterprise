@@ -19,7 +19,6 @@ export default function TransactionDetail({ tx, ctx, onClose }: { tx: WalletTran
         <b style={{ color: tx.direction === "credit" ? "var(--green-text)" : "var(--ink)" }}>{tx.direction === "credit" ? "+" : "−"}{money(tx.amount)}</b>
         <TxStatusBadge status={tx.status} />
       </div>
-      {tx.simulated && <p className="wallet-note">Simulated in Demo Mode — no real money moved.</p>}
       <div style={{ height: 10 }} />
       <KV items={[
         ["Date & time", fmtDateTime(tx.date)], ["Wallet", tx.walletName], ["Sender", tx.sender], ["Recipient", tx.recipient],

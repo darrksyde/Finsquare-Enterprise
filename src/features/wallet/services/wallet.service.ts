@@ -17,8 +17,6 @@ const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
  * Mock-backed service. Every method documents what the real backend must enforce:
  * the server is the only source of truth for balances, limits, approvals and audit records.
  */
-const MOCK_TRANSACTION_PIN = "1234"
-
 export class WalletService {
   constructor(private repo: WalletRepository = createMockWalletRepository()) {}
   load = () => this.repo.load()
@@ -169,9 +167,13 @@ export class WalletService {
     return t
   }
 
-  /** Mock PIN check. The backend verifies the transaction PIN and rate-limits attempts. */
+  /**
+   * The transaction PIN is verified by the backend, which also rate-limits attempts and locks the
+   * account after repeated failures. There is no stored PIN to check against here, so any four
+   * digits are accepted and the field on the form is what enforces the format.
+   */
   private verifyPin(pin: string) {
-    if (pin !== MOCK_TRANSACTION_PIN) throw new Error("Incorrect PIN. Please try again.")
+    if (!/^\d{4}$/.test(pin)) throw new Error("Enter your 4-digit transaction PIN.")
   }
 
   /** Bank transfer out of a wallet. Authorized by transaction PIN; limits and balance are re-validated by the backend. */

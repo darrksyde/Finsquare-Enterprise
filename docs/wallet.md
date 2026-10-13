@@ -28,7 +28,7 @@ it announces credited wallets through `walletService.onWalletsCredited`, and the
 collects what it is owed. `TransactionType` includes `"Dues"` for exactly this reason.
 
 ## Transfers
-`TransferModal` — account number (10 digits), bank, amount, narration, 4-digit PIN. Internal accounts resolve to a wallet and move instantly; external transfers create a Processing (or Completed in simulation) debit. Validation by zod `transferOutSchema`; limits and status checks in `service.checkOutflow`. The mock PIN is `1234` and **must be verified server-side** in production.
+`TransferModal` — account number (10 digits), bank, amount, narration, 4-digit PIN. Internal accounts resolve to a wallet and move instantly; external transfers create a Processing (or Completed in simulation) debit. Validation by zod `transferOutSchema`; limits and status checks in `service.checkOutflow`. There is no stored PIN to compare against in the mock, so any 4 digits are accepted and **the backend must verify the PIN and rate-limit attempts** in production.
 
 ## Environment gating
 `moneyMovementMode(environment)` → `live | simulated | blocked`. Demo is simulated and shows `ModeBanner` on wallet pages.

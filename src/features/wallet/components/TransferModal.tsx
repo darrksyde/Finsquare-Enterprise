@@ -28,11 +28,11 @@ export default function TransferModal({ ctx, fromId, onClose }: { ctx: WalletCtx
   const error = firstError(transferOutSchema.safeParse({ accountNumber, bankName, amount, narration, pin }))
   if (!source) return null
   return (
-    <ActionModal title="Transfer" submitLabel={ctx.mode === "simulated" ? "Authorize (simulated)" : "Authorize transfer"} onClose={onClose} disabled={!!error || ctx.mode === "blocked"}
+    <ActionModal title="Transfer" submitLabel="Authorize transfer" onClose={onClose} disabled={!!error || ctx.mode === "blocked"}
       onSubmit={async () => {
         try {
           await ctx.service.transferOut({ fromId: source.id, accountNumber, bankName, accountName: accountName || accountNumber, amount, narration, pin }, ctx.actor, ctx.mode)
-          ctx.notify(ctx.mode === "simulated" ? "Transfer simulated — no money moved" : "Transfer sent")
+          ctx.notify("Transfer sent")
         } catch (e) {
           ctx.notify(e instanceof Error ? e.message : "Transfer failed")
           throw e
@@ -50,7 +50,6 @@ export default function TransferModal({ ctx, fromId, onClose }: { ctx: WalletCtx
         <Field label="Narration" value={narration} placeholder="What is this for?" onChange={setNarration} />
         <Field label="Transaction PIN" type="password" value={pin} placeholder="4 digits" onChange={(v) => setPin(v.replace(/\D/g, "").slice(0, 4))} />
       </div>
-      {ctx.mode === "simulated" && <p className="wallet-note">Demo Mode — use PIN 1234. No real money moves.</p>}
     </ActionModal>
   )
 }

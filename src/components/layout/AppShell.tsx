@@ -3,7 +3,6 @@ import {
   Bell,
   ChevronDown,
   ChevronsUpDown,
-  Landmark,
   MoreHorizontal,
   PanelLeftClose,
 } from "@/icons"
@@ -11,22 +10,9 @@ import { navigationSections, parentView } from "@/app/config/navigation"
 import type { View } from "@/types"
 import type { Permission } from "@/types"
 import { IconButton } from "@/components/ui"
+import Brand from "@/components/layout/Brand"
 import OrgAvatar from "@/components/layout/OrgAvatar"
 import { useWorkspace } from "@/app/providers/WorkspaceProvider"
-
-export function Brand() {
-  return (
-    <div className="brand">
-      <div className="brand-mark">
-        <Landmark size={17} />
-      </div>
-      <div>
-        <b>FinSquare</b>
-        <small>ENTERPRISE</small>
-      </div>
-    </div>
-  )
-}
 
 export function Sidebar({
   view,
@@ -35,6 +21,7 @@ export function Sidebar({
   open,
   close,
   can,
+  onSignOut,
 }: {
   view: View
   setView: (v: View) => void
@@ -42,10 +29,19 @@ export function Sidebar({
   open: boolean
   close: () => void
   can: (permission: Permission) => boolean
+  onSignOut: () => void
 }) {
   const activeView = parentView(view)
-  const { organization: org, admin } = useWorkspace().state
+  const { organization: org, admin, session } = useWorkspace().state
   const [openIds, setOpenIds] = useState<Set<string>>(new Set())
+  const [menuOpen, setMenuOpen] = useState(false)
+  const identity = session?.name || admin.name || "Admin User"
+  const initials = identity
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
   return (
     <>
       <button
@@ -130,12 +126,36 @@ export function Sidebar({
             Notifications<i>3</i>
           </button>
           <div className="admin">
-            <div className="avatar">{(admin.name || "Admin User").split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</div>
+            <div className="avatar">{initials}</div>
             <div>
-              <b>{admin.name || "Admin User"}</b>
+              <b>{identity}</b>
               <small>Super Admin</small>
             </div>
-            <MoreHorizontal size={16} />
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Account menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((value) => !value)}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+            {menuOpen && (
+              <div className="admin-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    close()
+                    onSignOut()
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

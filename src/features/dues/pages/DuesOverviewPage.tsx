@@ -4,11 +4,11 @@ import { Button } from "@/components/ui"
 import { SearchInput } from "@/components/data-display/ManagementPrimitives"
 import { ShellPage } from "@/components/layout/ShellPage"
 import type { AttentionItem } from "@/components/feedback/AttentionStrip"
+import { EnvironmentNotice } from "@/components/feedback/EnvironmentNotice"
 import {
   DuesFrequencyBadge,
   DuesPage,
   DuesStatusBadge,
-  ModeBanner,
   PagedTable,
   Panel,
   Stats,
@@ -81,7 +81,7 @@ function FrontDoor({ ctx }: { ctx: DuesCtx }) {
         ) : undefined
       }
     >
-      <ModeBanner mode={ctx.mode} environment={ctx.environment} />
+      <EnvironmentNotice mode={ctx.mode} />
 
       {summary && (
         <Stats

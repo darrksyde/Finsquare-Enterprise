@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import { emptyCorporateDetails, type AdminAccount, type CorporateAccountDetails } from "@/features/onboarding/types"
+import type { Session } from "@/features/auth/types"
 import { DEFAULT_ENABLED_MODULES } from "@/app/config/module-registry"
 import { isCustomAccent, resolveAccent, type ThemeName } from "@/lib/theme/accent"
 import { complianceDocumentsMock } from "@/features/compliance/mocks/compliance.mock"
@@ -29,6 +30,8 @@ interface WorkspaceState {
   onboardingCompleted: boolean
   admin: AdminAccount
   corporateDetails: CorporateAccountDetails
+  /** The signed-in administrator. Session-scoped on purpose: reloading the page signs you out. */
+  session: Session | null
 }
 
 export type ThemePreference = "light" | "dark" | "system"
@@ -152,6 +155,11 @@ type WorkspaceAction = {
 } | {
   type: "preferences/accent-changed"
   value: string
+} | {
+  type: "auth/signed-in"
+  value: Session
+} | {
+  type: "auth/signed-out"
 }
 
 const initialState: WorkspaceState = {
@@ -170,6 +178,7 @@ const initialState: WorkspaceState = {
   ),
   organization: loadOrganization(),
   accent: window.localStorage.getItem("finsquare-accent") || "blue",
+  session: null,
 }
 
 function workspaceReducer(
@@ -195,7 +204,20 @@ function workspaceReducer(
     case "corporate-account/status-changed":
       return { ...state, corporateAccountStatus: action.value, environment: environmentFor(action.value) }
     case "onboarding/completed":
-      return { ...state, onboardingCompleted: true }
+      // Finishing sign-up signs the new administrator in.
+      return {
+        ...state,
+        onboardingCompleted: true,
+        session: state.session ?? {
+          email: state.admin.email,
+          name: state.admin.name,
+          signedInAt: new Date().toISOString(),
+        },
+      }
+    case "auth/signed-in":
+      return { ...state, session: action.value }
+    case "auth/signed-out":
+      return { ...state, session: null }
     case "onboarding/restarted":
       return { ...state, onboardingCompleted: false }
     case "onboarding/admin-saved":

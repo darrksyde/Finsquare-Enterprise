@@ -87,7 +87,7 @@ export function RecordPaymentModal({
         </p>
       )}
       <TextArea label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. cash received at the Ikeja branch" />
-      {ctx.mode !== "live" && <p className="contribution-hint">Demo mode: this payment is recorded but no real money moves.</p>}
+      {ctx.mode !== "live" && <p className="contribution-hint">Money movement is not enabled yet, so no money leaves the wallet.</p>}
       {error && <p className="field-error">{error}</p>}
     </ActionModal>
   )

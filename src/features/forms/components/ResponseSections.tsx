@@ -24,13 +24,14 @@ export function ResponseSections({ version, values, docStatus, onFile, guarantor
           return (
             <Panel key={s.id} title={s.title} subtitle="Uploaded files">
               <table className="data-table" style={{ width: "100%" }}>
-                <thead><tr><th>Document</th><th>Uploaded</th><th>Status</th><th /></tr></thead>
+                <thead><tr><th className="serial-cell">#</th><th>Document</th><th>Uploaded</th><th>Status</th><th /></tr></thead>
                 <tbody>
-                  {s.fields.map((x) => {
+                  {s.fields.map((x, index) => {
                     const v = values[x.id]
                     const up = typeof v === "object" && !Array.isArray(v) ? v : null
                     return (
                       <tr key={x.id}>
+                        <td className="serial-cell">{index + 1}</td>
                         <td><b>{x.label}</b>{x.required && <span style={{ color: "var(--muted)" }}> · required</span>}</td>
                         <td>{up ? fmtDate(up.uploadedAt) : "—"}</td>
                         <td><StatusBadge status={up ? docStatus?.(x) ?? "Pending review" : x.required ? "Pending" : "Not provided"} /></td>

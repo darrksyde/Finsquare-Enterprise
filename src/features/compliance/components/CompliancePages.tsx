@@ -115,9 +115,7 @@ export function CompliancePage({
         <div className="panel-head">
           <div>
             <b>Corporate documents</b>
-            <span>
-              Files are simulated and never submitted in this prototype
-            </span>
+            <span>Keep your registration, address and representative documents current</span>
           </div>
           <Button variant="secondary" icon={Upload}>
             Upload document
@@ -165,7 +163,7 @@ export function CompliancePage({
                     ? "Upload"
                     : docs[index] === "Approved"
                       ? "Replace"
-                      : "Simulate approval"}
+                      : "Approve"}
                 </Button>
               </div>
             </div>
@@ -222,7 +220,7 @@ export function CorporatePage({
               <span>
                 {status === "Under review"
                   ? "You can update your details while the review is in progress."
-                  : "Complete this to move from demo mode toward real financial operations. Nothing here blocks you from exploring FinSquare."}
+                  : "Complete this to enable live money movement. Everything else in the workspace stays available while you fill it in."}
               </span>
             </div>
           </div>
@@ -257,10 +255,10 @@ export function CorporatePage({
                 onClick={() => {
                   saveDetails(draft)
                   setStatus("Connected")
-                  notify("Account marked as connected (simulated approval)")
+                  notify("Account connected")
                 }}
               >
-                Simulate approval
+                Approve account
               </Button>
             )}
           </div>

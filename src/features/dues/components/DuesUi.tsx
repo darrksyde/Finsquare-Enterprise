@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import { ActionMenu, Badge, Button, Disclosure } from "@/components/ui"
-import { Landmark } from "@/icons"
 import type { View } from "@/types"
 import { useDues } from "../hooks/useDues"
 import { DUES_ORG_ID } from "../constants"
@@ -54,20 +53,6 @@ export function DuesPage({
   if (!resource.data) return <LoadingState label="Loading dues…" />
   const { data, ...rest } = resource
   return <>{children({ ...props, ...rest, data } as DuesCtx)}</>
-}
-/** The in-panel environment banner (same style the wallet pages use). */
-export function ModeBanner({ mode, environment }: { mode: "live" | "simulated" | "blocked"; environment: string }) {
-  if (mode === "live") return null
-  return (
-    <div className="wallet-banner" data-mode={mode} role="status">
-      <Landmark size={15} />
-      <span>
-        {mode === "simulated"
-          ? "Demo Mode — dues, payments and wallet recoveries are recorded but no real money moves."
-          : `Environment is ${environment.replace("_", " ")} — dues can be configured, but money movement is disabled.`}
-      </span>
-    </div>
-  )
 }
 const planTones: Record<DuesPlanStatus, Tone> = {
   Active: "green",

@@ -4,6 +4,7 @@ import { useAppRoute } from "@/app/routes/useAppRoute"
 import { Badge, Button, Field, SelectField } from "@/components/ui"
 import OrgAvatar from "@/components/layout/OrgAvatar"
 import AccentPicker from "@/features/settings/components/AccentPicker"
+import Brand, { BrandMark } from "@/components/layout/Brand"
 import { readableOn } from "@/lib/theme/accent"
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, Landmark, Upload } from "@/icons"
 import { accountSchema, corporateSchema, organizationInfoSchema, organizationSchema, validate, type FieldErrors } from "../domain/validation"
@@ -15,13 +16,13 @@ const STEPS = [
   { title: "Set up organization", hint: "Name, logo and brand colors" },
   { title: "Organization details", hint: "Registration and contacts" },
   { title: "Corporate account", hint: "Optional — can be done later" },
-  { title: "Finish", hint: "Start in demo mode" },
+  { title: "Finish", hint: "Review and finish" },
 ]
 
 const COUNTRIES = ["Nigeria", "Ghana", "Kenya", "South Africa", "Other"]
 const SECONDARY_PRESETS = ["#0f766e", "#7c3aed", "#d97706", "#be123c", "#475569"]
 
-export default function OnboardingFlow() {
+export default function OnboardingFlow({ onLogin }: { onLogin?: () => void } = {}) {
   const { state, dispatch } = useWorkspace()
   const { navigate } = useAppRoute()
   const [step, setStep] = useState(0)
@@ -64,8 +65,12 @@ export default function OnboardingFlow() {
   return (
     <div className="onb">
       <header className="onb-top">
-        <div className="brand"><div className="brand-mark"><Landmark size={17} /></div><div><b>FinSquare</b><small>ENTERPRISE</small></div></div>
-        <span className="onb-top-note">Setup takes about three minutes</span>
+        <Brand />
+        {onLogin ? (
+          <span className="onb-top-note">Already have an account?{" "}<button type="button" className="onb-link" onClick={onLogin}>Log in</button></span>
+        ) : (
+          <span className="onb-top-note">Setup takes about three minutes</span>
+        )}
       </header>
 
       <main className="onb-main">
@@ -91,17 +96,12 @@ export default function OnboardingFlow() {
           {step === 0 && (
             <>
               <div className="onb-welcome">
-                <div className="onb-welcome-icon"><Landmark size={22} /></div>
+                <BrandMark size={46} />
                 <div>
                   <h1>Welcome to FinSquare</h1>
                   <p>Let&apos;s set up your organization&apos;s workspace.</p>
                 </div>
               </div>
-              <ul className="onb-points">
-                <li><i><BadgeCheck size={14} /></i><div><b>Only the essentials first</b><small>Members, groups and branches can be added once you are in.</small></div></li>
-                <li><i><Landmark size={14} /></i><div><b>Start in demo mode</b><small>Explore every module with sample data before handling real money.</small></div></li>
-                <li><i><Check size={14} /></i><div><b>Nothing is locked in</b><small>Branding, modules and settings stay editable later.</small></div></li>
-              </ul>
               <h2>Create your administrator account</h2>
               <p>You will be the first Super Admin of this workspace.</p>
               <div className="form-grid">
@@ -227,7 +227,7 @@ export default function OnboardingFlow() {
               <p>Connect a corporate account when you are ready to move real money.</p>
               <div className="onb-callout">
                 <Landmark size={18} />
-                <span>Completing this step lets FinSquare open your organization&apos;s corporate account and wallet, which is required for <b>real</b> collections, loan disbursements and transfers. You can skip it and explore the platform in demo mode first.</span>
+                <span>Completing this step lets FinSquare open your organization&apos;s corporate account and wallet, which is required for <b>real</b> collections, loan disbursements and transfers. You can skip it now and connect the account later from Settings.</span>
               </div>
               <CorporateAccountForm value={corporate} onChange={setCorporate} errors={errors} />
               <div className="onb-actions">
@@ -261,7 +261,7 @@ export default function OnboardingFlow() {
               {!corporateSubmitted && (
                 <div className="onb-callout">
                   <Landmark size={18} />
-                  <span>You will start in <b>Demo Mode</b>. A banner in the workspace will take you back to Corporate account setup whenever you&apos;re ready.</span>
+                  <span>Finish the corporate account step whenever you&apos;re ready — a banner in the workspace will bring you back to it.</span>
                 </div>
               )}
               <div className="onb-actions">

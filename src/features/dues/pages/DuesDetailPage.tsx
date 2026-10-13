@@ -2,7 +2,8 @@ import { useState } from "react"
 import { ArrowLeft, Bell, Plus, RefreshCcw } from "@/icons"
 import { ActionMenu, Button, Tabs } from "@/components/ui"
 import { ShellPage } from "@/components/layout/ShellPage"
-import { DuesFrequencyBadge, DuesPage, DuesStatusBadge, ModeBanner, Panel } from "../components/DuesUi"
+import { EnvironmentNotice } from "@/components/feedback/EnvironmentNotice"
+import { DuesFrequencyBadge, DuesPage, DuesStatusBadge, Panel } from "../components/DuesUi"
 import { PlanOverview } from "../components/PlanOverview"
 import { PlanParticipants } from "../components/PlanParticipants"
 import { PlanPayments } from "../components/PlanPayments"
@@ -104,7 +105,7 @@ function DetailBody({ ctx }: { ctx: DuesCtx }) {
           </div>
         }
       >
-        <ModeBanner mode={ctx.mode} environment={ctx.environment} />
+        <EnvironmentNotice mode={ctx.mode} />
 
         <Tabs
           tabs={[

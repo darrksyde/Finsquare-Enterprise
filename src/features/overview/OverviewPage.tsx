@@ -17,22 +17,31 @@ import {
   Users,
 } from "@/icons"
 import { Button, Badge, SectionHeader } from "@/components/ui"
+import type { ReactNode } from "react"
 import type { View } from "@/types"
 import {
   attentionItemsMock,
   dashboardMetricsMock,
+  recentActivityMock,
 } from "./mocks/dashboard.mock"
+
+type ActivityKind = (typeof recentActivityMock)[number]["kind"]
+
+/** Icon and dot colour per activity kind, kept in the page because the mock holds data, not design. */
+const ACTIVITY_STYLES: Record<ActivityKind, [ReactNode, string]> = {
+  members: [<Users size={14} key="members" />, "blue"],
+  administrator: [<UserCog size={14} key="administrator" />, "purple"],
+  compliance: [<FileText size={14} key="compliance" />, "amber"],
+}
 
 export function Dashboard({
   live,
   setView,
   onImport,
-  notify,
 }: {
   live: boolean
   setView: (v: View) => void
   onImport: () => void
-  notify: (text: string) => void
 }) {
   const metricIcons = {
     members: Users,
@@ -143,7 +152,7 @@ export function Dashboard({
                 <b>
                   {live
                     ? "Financial actions are enabled"
-                    : "Financial actions are in test mode"}
+                    : "Financial actions are not enabled yet"}
                 </b>
                 <small>
                   {live
@@ -154,9 +163,7 @@ export function Dashboard({
             </div>
             <Button
               variant="secondary"
-              onClick={() =>
-                notify("New payment flow opened")
-              }
+              onClick={() => setView(live ? "wallet" : "corporate")}
             >
               {live ? "Record payment" : "View requirements"}
             </Button>
@@ -169,38 +176,20 @@ export function Dashboard({
             <b>Recent activity</b>
             <span>Latest changes across your workspace</span>
           </div>
-          <Button variant="ghost">View all</Button>
         </div>
-        <div className="activity-row">
-          <div className="activity-dot blue">
-            <Users size={14} />
-          </div>
-          <div>
-            <b>Member import completed</b>
-            <span>2,421 member records were added</span>
-          </div>
-          <time>18 min ago</time>
-        </div>
-        <div className="activity-row">
-          <div className="activity-dot purple">
-            <UserCog size={14} />
-          </div>
-          <div>
-            <b>Administrator invited</b>
-            <span>Taiwo Akinyemi · Finance Officer</span>
-          </div>
-          <time>2 hrs ago</time>
-        </div>
-        <div className="activity-row">
-          <div className="activity-dot amber">
-            <FileText size={14} />
-          </div>
-          <div>
-            <b>Compliance document updated</b>
-            <span>Board resolution was requested</span>
-          </div>
-          <time>Yesterday</time>
-        </div>
+        {recentActivityMock.map((entry) => {
+          const [icon, tone] = ACTIVITY_STYLES[entry.kind]
+          return (
+            <div className="activity-row" key={entry.id}>
+              <div className={`activity-dot ${tone}`}>{icon}</div>
+              <div>
+                <b>{entry.title}</b>
+                <span>{entry.detail}</span>
+              </div>
+              <time>{entry.when}</time>
+            </div>
+          )
+        })}
       </section>
     </div>
   )

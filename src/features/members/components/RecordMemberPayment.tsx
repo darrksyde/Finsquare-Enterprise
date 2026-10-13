@@ -187,7 +187,7 @@ export function RecordMemberPayment({
 
       {mode !== "live" && (
         <p className="contribution-hint">
-          Demo mode: the payment is recorded and every balance moves, but no real money leaves the wallet.
+          Money movement is not enabled yet. Connect your corporate account to settle payments from a wallet.
         </p>
       )}
       {error && <p className="contribution-hint" style={{ color: "var(--red-text)" }}>{error}</p>}

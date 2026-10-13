@@ -696,6 +696,17 @@ Do not redesign the entire product when implementing a feature.
 
 Follow the existing visual language.
 
+### Copy
+
+The product is presented as a finished product, never as a prototype of one.
+
+- **No screen may read as mock, demo, sample, simulated, test or placeholder software.** Words like *mock balances*, *simulated transfer*, *test mode*, *sample data*, *in this prototype* and *(demo)* are bugs, not notes.
+- A **not-yet-live state is a product state**, not a development state. Describe what the user can do and what unlocks the rest — "Connect your corporate account to enable live money movement" — never that the software is fake. The same applies to a simulated money movement: state the product consequence, don't narrate the implementation.
+- **Never print a secret or a stand-in credential on screen.** If a screen needs the user to know a magic value to proceed, the value belongs in the backend, not in the interface.
+- **No invented data.** A count, date, name or status on screen comes from a record. If a feature is not built, render an honest empty state that says so; never fill the gap with plausible-looking figures.
+- **No control without an effect.** A button that only shows a toast, or a panel that reports "Available" for something that does not exist, is a lie the user will act on.
+- The **product mark** is drop-in artwork under `src/assets/brand/` and the favicon is `public/brand/favicon.svg` — see `docs/branding.md`. Never hardcode a logo path in a component; use `Brand` or `BrandMark`. A **community's** logo is runtime data uploaded by the organisation and rendered by `OrgAvatar`, never a build asset, and the two must never stand in for each other.
+
 ## 19. Working on a Task
 
 Before changing code:
@@ -803,6 +814,17 @@ Before considering a feature complete, verify:
 * Existing components are reused where appropriate.
 * No unrelated functionality was broken.
 * The implementation can later connect to a real backend without rewriting the feature.
+
+## 25. Authentication
+
+`app.tsx` renders the **login gate** before the shell, in this order: the public links (`/apply/`, `/join/`, `/contribute/`) first, so an external applicant or contributor never needs a session; then the login page while there is no session; then the onboarding flow while `onboardingCompleted` is false. Login and onboarding are **not** `View`s — they have no route, no breadcrumb and never render the sidebar.
+
+- **Sign up is the onboarding flow.** There is no second account form: the login page's switch starts onboarding, and `onboarding/completed` sets the session from the administrator that onboarding collected. One screen creates the administrator account.
+- **The session is session-scoped.** It lives in `WorkspaceProvider` and is deliberately **not** persisted, so reloading returns to the login page. Logging out clears the session only — the organisation, modules, branding and completed setup all survive, so logging back in does not repeat setup.
+- **Log out** is in the sidebar's administrator block (a small menu) and in the Settings header.
+- The mock accepts any well-formed email and password, because there is no account store to check them against. `ApiAuthRepository` is the real boundary: the backend owns credentials, token issue and session lifetime. Never treat the frontend session as a security boundary.
+
+See `docs/authentication.md` and `docs/decisions/013-login-gate-and-session.md`.
 
 ## Final Rule
 

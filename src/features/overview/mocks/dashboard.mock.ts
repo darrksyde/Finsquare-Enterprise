@@ -54,3 +54,32 @@ export const attentionItemsMock = [
     target: "compliance",
   },
 ] as const
+
+/**
+ * The dashboard's activity feed. The relative timing is seed data rather than computed from
+ * `Date.now()` during render: that would make the render impure, and the labels would drift as
+ * the page re-rendered.
+ */
+export const recentActivityMock = [
+  {
+    id: "import",
+    kind: "members",
+    title: "Member import completed",
+    detail: "2,438 member records were added",
+    when: "18 min ago",
+  },
+  {
+    id: "administrator",
+    kind: "administrator",
+    title: "Administrator invited",
+    detail: "Taiwo Akinyemi · Finance Officer",
+    when: "2 hrs ago",
+  },
+  {
+    id: "compliance",
+    kind: "compliance",
+    title: "Compliance document updated",
+    detail: "Board resolution was requested",
+    when: "Yesterday",
+  },
+] as const

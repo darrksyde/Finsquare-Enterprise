@@ -3,7 +3,7 @@ import type { LoanSummary, RepaymentScheduleItem } from "../types/loan.types"
 
 export function ScheduleTable({ schedule, pageSize = 12 }: { schedule: RepaymentScheduleItem[]; pageSize?: number }) {
   return (
-    <PagedTable rows={schedule} rowKey={(s) => String(s.no)} pageSize={pageSize}
+    <PagedTable rows={schedule} rowKey={(s) => String(s.no)} pageSize={pageSize} showSerial={false}
       columns={[
         { id: "n", header: "#", render: (s) => s.no },
         { id: "d", header: "Due date", render: (s) => fmtDate(s.dueDate) },

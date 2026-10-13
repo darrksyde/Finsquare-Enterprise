@@ -7,6 +7,7 @@ import type {
   UpdateMemberInput,
 } from "@/types"
 import type { MemberRepository } from "./members.repository"
+import type { ImportTarget } from "../domain/member-import"
 
 function mapMember(dto: MemberDTO): Member {
   return {
@@ -76,9 +77,11 @@ export class ApiMemberRepository implements MemberRepository {
   async import(
     organizationId: string,
     file: File,
+    mapping?: ImportTarget[],
   ): Promise<MemberImportResult> {
     return apiClient.post(endpoints.members.import(organizationId), {
       fileName: file.name,
+      mapping,
     })
   }
 

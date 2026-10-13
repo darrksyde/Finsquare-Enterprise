@@ -43,12 +43,4 @@ export const corporateSchema = z.object({
   accountName: required("Account name"),
 })
 
-export type FieldErrors = Record<string, string>
-
-export function validate<T extends z.ZodTypeAny>(schema: T, value: unknown): FieldErrors {
-  const result = schema.safeParse(value)
-  if (result.success) return {}
-  const errors: FieldErrors = {}
-  for (const issue of result.error.issues) errors[String(issue.path[0])] ??= issue.message
-  return errors
-}
+export { validate, type FieldErrors } from "@/lib/validation/zod"

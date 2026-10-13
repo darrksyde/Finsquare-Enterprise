@@ -16,10 +16,10 @@ export default function FundWallet({ ctx, walletId, onClose }: { ctx: WalletCtx;
   const err = firstError(fundSchema.safeParse({ walletId: id, amount, method, reference }))
   const blocked = ctx.mode === "blocked"
   return (
-    <ActionModal title="Fund wallet" submitLabel={ctx.mode === "simulated" ? "Simulate funding" : "I've made the transfer"} onClose={onClose} disabled={!!err || blocked}
+    <ActionModal title="Fund wallet" submitLabel="I've made the transfer" onClose={onClose} disabled={!!err || blocked}
       onSubmit={async () => {
         await ctx.service.fund({ walletId: id, amount, method, reference, senderName: sender }, ctx.actor, ctx.mode)
-        ctx.notify(ctx.mode === "simulated" ? "Funding simulated — no real money moved" : "Funding recorded — the wallet is credited once the bank confirms")
+        ctx.notify("Funding recorded — the wallet is credited once the bank confirms")
       }}>
       <div className="form-grid">
         <WalletSelect label="Wallet to fund" value={id} onChange={setId} wallets={options} />
@@ -39,8 +39,7 @@ export default function FundWallet({ ctx, walletId, onClose }: { ctx: WalletCtx;
           <p style={{ color: "var(--muted)", fontSize: 12 }}>Anyone can transfer to this account number and the payment will appear against this wallet. Include your reference in the narration.</p>
         </div>
       )}
-      {ctx.mode === "simulated" && <p className="wallet-note">Demo Mode: the credit is simulated and clearly flagged on the transaction.</p>}
-      {blocked && <p style={{ color: "var(--red-text)", fontSize: 12 }}>Money movement is disabled in this environment.</p>}
+      {blocked && <p style={{ color: "var(--red-text)", fontSize: 12 }}>Money movement is unavailable in this workspace.</p>}
     </ActionModal>
   )
 }

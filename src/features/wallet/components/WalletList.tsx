@@ -93,7 +93,7 @@ function CreateWalletModal({ ctx, onClose }: { ctx: WalletCtx; onClose: () => vo
         {type === "Branch" && (
           <label className="field"><span>Branch</span><select value={branchId} onChange={(e) => setBranchId(e.target.value)}>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
         )}
-        {simulatedOnly && <NumField label="Mock opening balance (₦)" value={opening} onChange={setOpening} />}
+        {simulatedOnly && <NumField label="Opening balance (₦)" value={opening} onChange={setOpening} />}
         <Field label="Description" value={description} onChange={setDescription} />
       </div>
       <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 10 }}>A unique account number is issued automatically. {type === "Branch" ? "Branch wallets are scoped to their branch — administrators of other branches get no access." : "Access must be granted explicitly in Access & Controls."}{!simulatedOnly && " Live wallets start at ₦0 and are funded by bank transfer."}</p>

@@ -1,4 +1,8 @@
 export const endpoints = {
+  auth: {
+    login: "/auth/login",
+    logout: "/auth/logout",
+  },
   members: {
     list: (organizationId: string) =>
       `/organizations/${organizationId}/members`,

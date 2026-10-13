@@ -206,10 +206,10 @@ export function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; o
 }
 
 export function PagedTable<T>({
-  rows, columns, rowKey, onRowClick, pageSize = 8, emptyText = "Nothing to show yet.", selectedKeys, onSelectionChange,
+  rows, columns, rowKey, onRowClick, pageSize = 8, emptyText = "Nothing to show yet.", selectedKeys, onSelectionChange, showSerial,
 }: {
   rows: T[]; columns: DataTableColumn<T>[]; rowKey: (r: T) => string; onRowClick?: (r: T) => void; pageSize?: number; emptyText?: string
-  selectedKeys?: ReadonlySet<string>; onSelectionChange?: (k: Set<string>) => void
+  selectedKeys?: ReadonlySet<string>; onSelectionChange?: (k: Set<string>) => void; showSerial?: boolean
 }) {
   const [page, setPage] = useState(1)
   const maxPage = Math.max(1, Math.ceil(rows.length / pageSize))
@@ -218,7 +218,7 @@ export function PagedTable<T>({
     <DataTable
       rows={rows.slice((current - 1) * pageSize, current * pageSize)}
       columns={columns} rowKey={rowKey} onRowClick={onRowClick} page={current} pageSize={pageSize} total={rows.length}
-      onPageChange={setPage} selectedKeys={selectedKeys} onSelectionChange={onSelectionChange}
+      onPageChange={setPage} selectedKeys={selectedKeys} onSelectionChange={onSelectionChange} showSerial={showSerial}
       empty={<div className="tab-empty" style={{ border: 0 }}><b>{emptyText}</b></div>}
     />
   )
