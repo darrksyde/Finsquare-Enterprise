@@ -1,5 +1,5 @@
 import { membersMock } from "@/features/members/mocks/members.mock"
-import { DUES_ORG_ID } from "../constants"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { syncCharge } from "../domain/dues.rules"
 import { addDays, generateCharges, parseISODate, toISODate } from "../domain/schedule"
 import type {
@@ -173,7 +173,7 @@ function makeTransaction(input: {
   const { plan, participant, charge, amount, method, type, date, sequence } = input
   return {
     id: `dtx-${plan.id}-${participant.memberId}-${charge.periodKey}`,
-    organizationId: DUES_ORG_ID,
+    organizationId: SEED_ORGANIZATION_ID,
     reference: reference(sequence),
     duesPlanId: plan.id,
     participantId: participant.id,
@@ -201,7 +201,7 @@ export function buildDuesDataset(
   const todayDate = parseISODate(today)
   const plans: DuesPlan[] = PLAN_SEEDS.map((seed) => ({
     id: seed.id,
-    organizationId: DUES_ORG_ID,
+    organizationId: SEED_ORGANIZATION_ID,
     name: seed.name,
     description: seed.description,
     amount: seed.amount,
@@ -229,7 +229,7 @@ export function buildDuesDataset(
       if (!member) continue
       participants.push({
         id: `${plan.id}:${memberId}`,
-        organizationId: DUES_ORG_ID,
+        organizationId: SEED_ORGANIZATION_ID,
         duesPlanId: plan.id,
         memberId: member.id,
         memberName: member.name,

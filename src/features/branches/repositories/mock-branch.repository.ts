@@ -1,13 +1,27 @@
 import { administratorsMock } from "@/features/administrators/mocks/administrators.mock"
 import { groupsMock } from "@/features/groups/mocks/groups.mock"
 import { membersMock } from "@/features/members/mocks/members.mock"
+import { createTenantStore } from "@/lib/tenancy/tenant-store"
+import { isSeedTenant } from "@/lib/tenancy/seed-tenant"
 import type { Branch, CreateBranchInput, UpdateBranchInput } from "@/types"
 import { wouldCreateBranchCycle } from "../schemas/branch.schema"
 import { branchesMock } from "../mocks/branches.mock"
 import type { BranchRepository } from "./branch.repository"
 
+/**
+ * The seeded records a branch page joins to. They belong to the seeded community, so another
+ * community gets nothing here rather than a branch list belonging to somebody else — a backend joins
+ * across collections within the tenant it authenticated.
+ */
+const seededOnly = <T>(organizationId: string, rows: T[]): T[] =>
+  isSeedTenant(organizationId) ? structuredClone(rows) : []
+
 export class MockBranchRepository implements BranchRepository {
-  private branches = structuredClone(branchesMock)
+  /** One entry per community: the seeded community has its branches, every other one starts empty. */
+  private branches = createTenantStore<Branch[]>({
+    seed: () => structuredClone(branchesMock),
+    empty: () => [],
+  })
   private branchAdministratorIds = new Map<string, string[]>(
     administratorsMock
       .flatMap((administrator) =>
@@ -23,7 +37,7 @@ export class MockBranchRepository implements BranchRepository {
 
   async getBranches(organizationId: string) {
     return structuredClone(
-      this.branches.filter(
+      this.branches.of(organizationId).filter(
         (branch) => branch.organizationId === organizationId,
       ),
     )
@@ -31,7 +45,7 @@ export class MockBranchRepository implements BranchRepository {
 
   async getBranch(organizationId: string, id: string) {
     return structuredClone(
-      this.branches.find(
+      this.branches.of(organizationId).find(
         (branch) =>
           branch.organizationId === organizationId && branch.id === id,
       ) ?? null,
@@ -42,7 +56,7 @@ export class MockBranchRepository implements BranchRepository {
     this.assertUniqueCode(organizationId, input.code)
     if (
       input.parentBranchId &&
-      !this.branches.some(
+      !this.branches.of(organizationId).some(
         (branch) =>
           branch.organizationId === organizationId &&
           branch.id === input.parentBranchId,
@@ -61,7 +75,7 @@ export class MockBranchRepository implements BranchRepository {
       createdAt: now,
       updatedAt: now,
     }
-    this.branches.unshift(branch)
+    this.branches.of(organizationId).unshift(branch)
     this.branchAdministratorIds.set(branch.id, input.administratorIds ?? [])
     return structuredClone(branch)
   }
@@ -74,7 +88,7 @@ export class MockBranchRepository implements BranchRepository {
     const branch = this.requireBranch(organizationId, id)
     if (
       input.parentBranchId !== undefined &&
-      wouldCreateBranchCycle(id, input.parentBranchId, this.branches)
+      wouldCreateBranchCycle(id, input.parentBranchId, this.branches.of(organizationId))
     ) {
       throw new Error(
         "This parent would create a circular branch relationship.",
@@ -96,13 +110,16 @@ export class MockBranchRepository implements BranchRepository {
     if (
       branch.memberCount > 0 ||
       branch.groupCount > 0 ||
-      this.branches.some((item) => item.parentBranchId === id)
+      this.branches.of(organizationId).some((item) => item.parentBranchId === id)
     ) {
       throw new Error(
         "This branch contains records or child branches and should be archived.",
       )
     }
-    this.branches = this.branches.filter((item) => item.id !== id)
+    this.branches.set(
+      organizationId,
+      this.branches.of(organizationId).filter((item) => item.id !== id),
+    )
   }
 
   async archiveBranch(organizationId: string, id: string) {
@@ -115,19 +132,18 @@ export class MockBranchRepository implements BranchRepository {
 
   async getBranchMembers(organizationId: string, id: string) {
     this.requireBranch(organizationId, id)
-    return structuredClone(
-      membersMock.filter((member) => member.branchId === id),
-    )
+    return seededOnly(organizationId, membersMock.filter((member) => member.branchId === id))
   }
 
   async getBranchGroups(organizationId: string, id: string) {
     this.requireBranch(organizationId, id)
-    return structuredClone(groupsMock.filter((group) => group.branchId === id))
+    return seededOnly(organizationId, groupsMock.filter((group) => group.branchId === id))
   }
 
   async getBranchAdministrators(organizationId: string, id: string) {
     this.requireBranch(organizationId, id)
-    return structuredClone(
+    return seededOnly(
+      organizationId,
       administratorsMock.filter((administrator) =>
         this.branchAdministratorIds.get(id)?.includes(administrator.id),
       ),
@@ -135,7 +151,7 @@ export class MockBranchRepository implements BranchRepository {
   }
 
   private requireBranch(organizationId: string, id: string) {
-    const branch = this.branches.find(
+    const branch = this.branches.of(organizationId).find(
       (item) => item.organizationId === organizationId && item.id === id,
     )
     if (!branch) throw new Error("Branch not found.")
@@ -145,7 +161,7 @@ export class MockBranchRepository implements BranchRepository {
   private assertUniqueCode(organizationId: string, code?: string) {
     if (
       code &&
-      this.branches.some(
+      this.branches.of(organizationId).some(
         (branch) =>
           branch.organizationId === organizationId &&
           branch.code?.toLowerCase() === code.toLowerCase(),

@@ -7,8 +7,8 @@ import { useMembers } from "@/features/members/hooks/useMembers"
 import { organizationWallets } from "@/features/wallet/domain/wallet.rules"
 import { useWallet } from "@/features/wallet/hooks/useWallet"
 import { useAsyncResource } from "@/hooks/useAsyncResource"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { moneyMovementMode } from "@/lib/permissions/capabilities"
-import { COMMUNICATION_ORG_ID } from "../constants"
 import { smsRemaining } from "../domain/messaging"
 import {
   communicationsService,
@@ -25,15 +25,16 @@ import type { Message, MessageSummary, SendMessageInput } from "../types/message
  * reading their mocks, so a member added in Members is messageable here straight away.
  */
 export function useCommunications() {
+  const organizationId = useOrganizationId()
   const resource = useAsyncResource(
-    () => communicationsService.load(COMMUNICATION_ORG_ID),
-    [COMMUNICATION_ORG_ID],
+    () => communicationsService.load(organizationId),
+    [organizationId],
   )
   const { administrator, can } = useAuthorization()
   const { state } = useWorkspace()
-  const members = useMembers(COMMUNICATION_ORG_ID)
-  const groups = useGroups(COMMUNICATION_ORG_ID)
-  const branches = useBranches(COMMUNICATION_ORG_ID)
+  const members = useMembers(organizationId)
+  const groups = useGroups(organizationId)
+  const branches = useBranches(organizationId)
   const wallet = useWallet()
 
   const { refresh } = resource
@@ -56,7 +57,7 @@ export function useCommunications() {
    */
   const sendMessage = useCallback(
     async (input: SendMessageInput): Promise<Message> => {
-      const message = await communicationsService.sendMessage(COMMUNICATION_ORG_ID, input, ctx)
+      const message = await communicationsService.sendMessage(organizationId, input, ctx)
       refresh()
       return message
     },
@@ -65,7 +66,7 @@ export function useCommunications() {
 
   const topUpBalance = useCallback(
     async (input: { amount: number; walletId: string }) => {
-      const result = await communicationsService.topUpBalance(COMMUNICATION_ORG_ID, input, ctx)
+      const result = await communicationsService.topUpBalance(organizationId, input, ctx)
       refresh()
       wallet.retry()
       return result

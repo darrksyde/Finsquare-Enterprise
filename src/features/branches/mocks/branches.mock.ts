@@ -1,6 +1,7 @@
 import type { Branch } from "@/types"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 
-const organizationId = "org-lagos-farmers"
+const organizationId = SEED_ORGANIZATION_ID
 
 export const branchesMock: Branch[] = [
   {
@@ -91,3 +92,4 @@ export const branchesMock: Branch[] = [
     updatedAt: "2025-04-09T09:00:00.000Z",
   },
 ]
+

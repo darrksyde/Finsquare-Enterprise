@@ -125,13 +125,29 @@ html[data-theme="dark"] .brand-logo-dark { display: block; }
 .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; width: 232px; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
 .sidebar-head { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
 .sidebar-head .icon-btn { display: none; }
-.org-switcher { margin: 0 10px 10px; height: 48px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); padding: 7px 9px; display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer; }
-.org-switcher:hover { border-color: var(--line); }
+.org-switcher-wrap { position: relative; margin: 0 10px 10px; }
+.org-switcher { width: 100%; height: 48px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); padding: 7px 9px; display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer; }
+.org-switcher:hover { border-color: var(--line-strong); }
 .org-avatar { width: 30px; height: 30px; border-radius: 7px; color: var(--blue-text); background: var(--surface-soft); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex: 0 0 auto; }
 .org-avatar.large { width: 38px; height: 38px; }
-.org-switcher > div:nth-child(2) { min-width: 0; flex: 1; }
+.org-switcher-copy { min-width: 0; flex: 1; }
 .org-switcher b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.org-switcher small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.org-switcher small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The communities menu opens downward from the switcher, inside the sidebar's own scroll area. The
+   single track is capped so a long community name shrinks to the menu instead of widening the sidebar. */
+.org-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 7; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 12px 32px rgba(23, 32, 46, .18); max-height: 60vh; overflow-x: hidden; overflow-y: auto; }
+.org-menu-head { padding: 7px 9px 5px; }
+.org-menu-head b { display: block; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+.org-menu-head span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.org-menu-item { width: 100%; display: flex; align-items: center; gap: 9px; min-height: 44px; padding: 8px 9px; border: 0; border-radius: 7px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.org-menu-item:hover { background: var(--surface-soft); }
+.org-menu-avatar { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 7px; background: var(--surface-soft); border: 1px solid var(--line); color: var(--blue-text); display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 800; }
+.org-menu-avatar img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
+.org-menu-copy { flex: 1; min-width: 0; }
+.org-menu-copy b { display: block; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-menu-copy small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-menu-add { border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; margin-top: 2px; padding-top: 10px; }
+.org-menu-add .org-menu-avatar { background: var(--blue-soft); border-color: transparent; }
 .nav { padding: 1px 8px 10px; overflow-y: auto; flex: 1; }
 .nav-section { margin-top: 11px; }
 .nav-label { font-size: 12px; color: var(--faint); font-weight: 750; letter-spacing: .1em; padding: 0 10px 5px; }
@@ -170,6 +186,9 @@ html[data-theme="dark"] .brand-logo-dark { display: block; }
 .stat-grid[data-stats] { grid-template-columns: repeat(var(--stat-cols, 4), minmax(150px, 1fr)); }
 @media (max-width: 860px) { .stat-grid[data-stats] { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
 .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; min-width: 0; }
+/* A stat card is a button when it leads to the records behind the figure. */
+button.stat-card { display: block; width: 100%; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+button.stat-card:hover { border-color: var(--line-strong); }
 .stat-top { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .stat-top svg { color: var(--muted); }
 .stat-value { font-size: 20px; font-weight: 680; letter-spacing: -.025em; margin-top: 12px; }
@@ -204,7 +223,7 @@ html[data-theme="dark"] .brand-logo-dark { display: block; }
 .activity-row > div:nth-child(2) { flex: 1; }
 .activity-row b { display: block; font-size: 14px; }
 .activity-row span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-.activity-row time { color: var(--faint); font-size: 12px; }
+.activity-row time, .activity-row .activity-when { color: var(--faint); font-size: 12px; margin-top: 0; }
 
 .info-callout { border: 1px solid var(--line); background: var(--surface-soft); border-radius: 7px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .info-icon { color: var(--blue-text); }

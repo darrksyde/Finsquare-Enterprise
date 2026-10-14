@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { Plus, UserPlus } from "@/icons"
-import { branchesMock } from "@/features/branches/mocks/branches.mock"
-import { membersMock } from "@/features/members/mocks/members.mock"
+import { useBranches } from "@/features/branches/hooks/useBranches"
+import { useMembers } from "@/features/members/hooks/useMembers"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import { Button, SectionHeader, SelectField } from "@/components/ui"
 import {
@@ -9,13 +10,10 @@ import {
   ErrorState,
   LoadingState,
 } from "@/components/feedback/AsyncState"
-import { useGroup } from "../hooks/useGroups"
-import { groupTypesMock } from "../mocks/groups.mock"
+import { useGroup, useGroups } from "../hooks/useGroups"
 import { GroupStatusBadge } from "./GroupStatusBadge"
 import { GroupForm } from "./GroupForm"
 import type { CreateGroupInput, GroupMemberRole } from "@/types"
-
-const organizationId = "org-lagos-farmers"
 
 export function GroupDetailsPage({
   groupId,
@@ -24,6 +22,7 @@ export function GroupDetailsPage({
   groupId: string
   notify: (message: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const {
     group,
     memberships,
@@ -35,13 +34,17 @@ export function GroupDetailsPage({
     updateMemberRole,
     updateGroup,
   } = useGroup(organizationId, groupId)
+  // Branches, members and group types belong to this community, not to a seeded list.
+  const { groupTypes } = useGroups(organizationId)
+  const { branches } = useBranches(organizationId)
+  const { members } = useMembers(organizationId)
   const { can } = useAuthorization()
   const [tab, setTab] = useState("Overview")
   const [editOpen, setEditOpen] = useState(false)
   const [memberName, setMemberName] = useState("Select member")
   const availableMembers = useMemo(
     () =>
-      membersMock.filter(
+      members.filter(
         (member) =>
           !memberships.some((membership) => membership.memberId === member.id),
       ),
@@ -53,11 +56,11 @@ export function GroupDetailsPage({
     return <ErrorState message={error ?? "Group not found."} retry={retry} />
   if (!can("groups.view", group.branchId)) return <AccessDeniedState />
 
-  const coordinator = membersMock.find(
+  const coordinator = members.find(
     (member) => member.id === group.coordinatorMemberId,
   )
-  const branch = branchesMock.find((item) => item.id === group.branchId)
-  const type = groupTypesMock.find((item) => item.id === group.typeId)
+  const branch = branches.find((item) => item.id === group.branchId)
+  const type = groupTypes.find((item) => item.id === group.typeId)
 
   return (
     <div className="page">
@@ -198,7 +201,7 @@ export function GroupDetailsPage({
           </div>
           <div className="document-table">
             {memberships.map((membership) => {
-              const member = membersMock.find(
+              const member = members.find(
                 (item) => item.id === membership.memberId,
               )
               return (
@@ -255,9 +258,9 @@ export function GroupDetailsPage({
         key={editOpen ? `edit-${group.updatedAt}` : "closed"}
         open={editOpen}
         group={group}
-        groupTypes={groupTypesMock}
-        branches={branchesMock}
-        members={membersMock}
+        groupTypes={groupTypes}
+        branches={branches}
+        members={members}
         onClose={() => setEditOpen(false)}
         onSubmit={async (input: CreateGroupInput) => {
           await updateGroup(input)

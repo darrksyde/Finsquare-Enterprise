@@ -5,7 +5,6 @@ import { Badge, Button } from "@/components/ui"
 import { HandCoins } from "@/icons"
 import { commissionPreview, isPersonal, keepsRunningAfterPayout, publicLinkAvailable, requiresApproval } from "../domain/contribution.rules"
 import { payoutBreakdown, round2 } from "../domain/calculations"
-import { CONTRIBUTION_ORG_ID } from "../constants"
 import type { ContributionPageProps, ContributionCtx } from "./ContributionUi"
 import type { Contribution, ContributionPaymentMethodId, ContributionWithdrawal, WithdrawalKind } from "../types/contribution.types"
 
@@ -44,7 +43,7 @@ export function RecordPaymentModal({
     if (!amount || amount <= 0) return setError("Enter an amount greater than zero.")
     try {
       await ctx.service.recordPayment(
-        CONTRIBUTION_ORG_ID,
+        ctx.organizationId,
         { contributionId: contribution.id, participantId, amount: round2(amount), method, note: note || undefined },
         ctx.ctx,
       )
@@ -123,7 +122,7 @@ export function WithdrawModal({
     if (gross <= 0) return setError("There is no balance available to pay out.")
     if (kind === "Scheduled" && !scheduledFor) return setError("Choose the date this payout should run.")
     const withdrawal = await ctx.service.requestWithdrawal(
-      CONTRIBUTION_ORG_ID,
+      ctx.organizationId,
       { contributionId: contribution.id, participantId: participant?.id, kind, amount: gross, fees, scheduledFor: scheduledFor || undefined, note: note || undefined },
       ctx.ctx,
     )
@@ -252,7 +251,7 @@ export function ContributionLinkRow({
   }
 
   const toggle = async (enabled: boolean) => {
-    await ctx.service.setPublicLink(CONTRIBUTION_ORG_ID, contribution.id, enabled, ctx.ctx)
+    await ctx.service.setPublicLink(ctx.organizationId, contribution.id, enabled, ctx.ctx)
     notify(enabled ? "Open link enabled" : "Open link disabled")
     ctx.retry()
   }
@@ -309,10 +308,10 @@ export function WithdrawalDecisionModal({
   const submit = async () => {
     try {
       if (approve) {
-        await ctx.service.approveWithdrawal(CONTRIBUTION_ORG_ID, withdrawal.id, ctx.ctx)
+        await ctx.service.approveWithdrawal(ctx.organizationId, withdrawal.id, ctx.ctx)
         ctx.notify(`${money(withdrawal.netPayout)} paid out`)
       } else {
-        await ctx.service.rejectWithdrawal(CONTRIBUTION_ORG_ID, withdrawal.id, ctx.ctx, note.trim())
+        await ctx.service.rejectWithdrawal(ctx.organizationId, withdrawal.id, ctx.ctx, note.trim())
         ctx.notify("Payout rejected")
       }
       ctx.retry()

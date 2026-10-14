@@ -1,7 +1,7 @@
 import type { Organization } from "@/types"
 
 export const organizationMock: Organization = {
-  id: "org-lagos-farmers",
+  id: SEED_ORGANIZATION_ID,
   name: "Lagos Farmers Cooperative",
   type: "Cooperative",
   country: "Nigeria",
@@ -26,3 +26,5 @@ export const organizationMock: Organization = {
     colorMode: "light",
   },
 }
+
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"

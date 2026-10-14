@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react"
 import { money } from "@/features/loans/components/LoanUi"
 import { useContributions } from "@/features/contributions/hooks/useContributions"
-import { CONTRIBUTION_ORG_ID } from "@/features/contributions/constants"
-import { DUES_ORG_ID } from "@/features/dues/constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { useDues } from "@/features/dues/hooks/useDues"
 import { outstandingOf } from "@/features/dues/domain/dues.rules"
 import { round2 } from "@/features/dues/domain/schedule"
@@ -47,7 +46,8 @@ export function ReminderPicker({
 }
 
 function ContributionReminderPicker({ onGenerate }: { onGenerate: (reminder: GeneratedReminder) => void }) {
-  const contributions = useContributions(CONTRIBUTION_ORG_ID)
+  const organizationId = useOrganizationId()
+  const contributions = useContributions(organizationId)
   const today = todayISO()
 
   const plans = useMemo(
@@ -120,7 +120,8 @@ function ContributionReminderPicker({ onGenerate }: { onGenerate: (reminder: Gen
  * naming a figure that is wrong for somebody.
  */
 function DuesReminderPicker({ onGenerate }: { onGenerate: (reminder: GeneratedReminder) => void }) {
-  const dues = useDues(DUES_ORG_ID)
+  const organizationId = useOrganizationId()
+  const dues = useDues(organizationId)
   const today = todayISO()
   const [bucket, setBucket] = useState<DuesBucket>("Outstanding")
   const [planId, setPlanId] = useState("")

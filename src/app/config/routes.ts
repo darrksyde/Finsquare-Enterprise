@@ -48,6 +48,7 @@ export const viewPaths: Record<View, string> = {
   corporate: "/corporate-account",
   settings: "/settings",
   organization: "/settings/organization",
+  "community-create": "/communities/new",
 }
 
 export const pathViews = Object.fromEntries(

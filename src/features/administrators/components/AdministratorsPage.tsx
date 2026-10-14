@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
+import { useBranches } from "@/features/branches/hooks/useBranches"
 import { MoreHorizontal, Settings, UserPlus } from "@/icons"
-import { branchesMock } from "@/features/branches/mocks/branches.mock"
 import {
   DataTable,
   type DataTableColumn,
@@ -23,7 +24,6 @@ import { useAuthorization } from "../hooks/useAuthorization"
 import { AdministratorStatusBadge } from "./AdministratorStatusBadge"
 import { InviteAdministratorForm } from "./InviteAdministratorForm"
 
-const organizationId = "org-lagos-farmers"
 const pageSize = 6
 
 export function AdministratorsPage({
@@ -35,6 +35,7 @@ export function AdministratorsPage({
   onManageRoles: () => void
   notify: (message: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const {
     administrators,
     roles,
@@ -46,6 +47,8 @@ export function AdministratorsPage({
     reactivate,
     resendInvitation,
   } = useAdministrators(organizationId)
+  // Branch names and options belong to the community being managed, so they come from the service.
+  const { branches } = useBranches(organizationId)
   const { can } = useAuthorization()
   const [search, setSearch] = useState("")
   const [role, setRole] = useState("All roles")
@@ -64,7 +67,7 @@ export function AdministratorsPage({
         .filter(Boolean)
       const branchNames =
         administrator.accessScope.branchIds?.map(
-          (branchId) => branchesMock.find((item) => item.id === branchId)?.name,
+          (branchId) => branches.find((item) => item.id === branchId)?.name,
         ) ?? []
       return (
         (!query ||
@@ -123,7 +126,7 @@ export function AdministratorsPage({
           : administrator.accessScope.branchIds
               ?.map(
                 (branchId) =>
-                  branchesMock.find((item) => item.id === branchId)?.name,
+                  branches.find((item) => item.id === branchId)?.name,
               )
               .join(", "),
     },
@@ -265,7 +268,7 @@ export function AdministratorsPage({
               onChange={(event) => setBranch(event.target.value)}
             >
               <option>All branches</option>
-              {branchesMock.map((item) => (
+              {branches.map((item) => (
                 <option key={item.id}>{item.name}</option>
               ))}
             </select>

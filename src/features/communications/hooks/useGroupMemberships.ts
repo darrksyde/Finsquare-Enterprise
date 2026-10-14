@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { groupsService } from "@/features/groups/services/groups.service"
-import { COMMUNICATION_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import type { GroupMembership } from "@/types"
 
 /**
@@ -11,6 +11,7 @@ import type { GroupMembership } from "@/types"
  * will do this in one call; `resolveRecipients` stays the same either way.
  */
 export function useGroupMemberships(groupIds: string[]): GroupMembership[] {
+  const organizationId = useOrganizationId()
   const [memberships, setMemberships] = useState<GroupMembership[]>([])
   // Re-fetch only when the set of groups changes, not when the array identity does.
   const key = [...groupIds].sort().join(",")
@@ -21,7 +22,7 @@ export function useGroupMemberships(groupIds: string[]): GroupMembership[] {
       groupIds.length === 0
         ? Promise.resolve([])
         : Promise.all(
-            groupIds.map((groupId) => groupsService.getGroupMembers(COMMUNICATION_ORG_ID, groupId)),
+            groupIds.map((groupId) => groupsService.getGroupMembers(organizationId, groupId)),
           ).then((rows) => rows.flat())
 
     load
@@ -36,7 +37,7 @@ export function useGroupMemberships(groupIds: string[]): GroupMembership[] {
     }
     // `key` is the group set; `groupIds` identity changes on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
+  }, [key, organizationId])
 
   return memberships
 }

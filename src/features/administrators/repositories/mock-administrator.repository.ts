@@ -4,16 +4,23 @@ import type {
   Role,
   UpdateAdministratorInput,
 } from "@/types"
-import { administratorsMock, rolesMock } from "../mocks/administrators.mock"
+import { systemRolesFor } from "@/lib/permissions/system-roles"
+import { createTenantStore } from "@/lib/tenancy/tenant-store"
+import { administratorsMock } from "../mocks/administrators.mock"
 import type { AdministratorRepository } from "./administrator.repository"
 
 export class MockAdministratorRepository implements AdministratorRepository {
-  private administrators = structuredClone(administratorsMock)
-  private roles = structuredClone(rolesMock)
+  /** One entry per community: the seeded community has its administrators, every other one none. */
+  private administrators = createTenantStore<Administrator[]>({
+    seed: () => structuredClone(administratorsMock),
+    empty: () => [],
+  })
+  /** Only the roles a community created itself; the system roles are resolved per tenant. */
+  private customRoles: Role[] = []
 
   async getAdministrators(organizationId: string) {
     return structuredClone(
-      this.administrators.filter(
+      this.administrators.of(organizationId).filter(
         (administrator) => administrator.organizationId === organizationId,
       ),
     )
@@ -21,7 +28,7 @@ export class MockAdministratorRepository implements AdministratorRepository {
 
   async getAdministrator(organizationId: string, id: string) {
     return structuredClone(
-      this.administrators.find(
+      this.administrators.of(organizationId).find(
         (administrator) =>
           administrator.organizationId === organizationId &&
           administrator.id === id,
@@ -34,7 +41,7 @@ export class MockAdministratorRepository implements AdministratorRepository {
     input: InviteAdministratorInput,
   ) {
     if (
-      this.administrators.some(
+      this.administrators.of(organizationId).some(
         (administrator) =>
           administrator.organizationId === organizationId &&
           administrator.email.toLowerCase() === input.email.toLowerCase(),
@@ -64,7 +71,7 @@ export class MockAdministratorRepository implements AdministratorRepository {
       createdAt: now,
       updatedAt: now,
     }
-    this.administrators.unshift(administrator)
+    this.administrators.of(organizationId).unshift(administrator)
     return structuredClone(administrator)
   }
 
@@ -108,10 +115,15 @@ export class MockAdministratorRepository implements AdministratorRepository {
     administrator.updatedAt = administrator.invitedAt
   }
 
+  /**
+   * A community's roles are its own system roles plus anything it created. The system roles exist in
+   * every community, so a membership recorded against `role-super-admin` resolves wherever it is used.
+   */
   async getRoles(organizationId: string) {
-    return structuredClone(
-      this.roles.filter((role) => role.organizationId === organizationId),
-    )
+    return structuredClone([
+      ...systemRolesFor(organizationId),
+      ...this.customRoles.filter((role) => role.organizationId === organizationId),
+    ])
   }
 
   async createRole(
@@ -127,20 +139,21 @@ export class MockAdministratorRepository implements AdministratorRepository {
       createdAt: now,
       updatedAt: now,
     }
-    this.roles.push(role)
+    this.customRoles.push(role)
     return structuredClone(role)
   }
 
   async updateRole(organizationId: string, role: Role) {
-    const index = this.roles.findIndex(
+    if (role.isSystemRole) throw new Error("System roles cannot be changed.")
+    const index = this.customRoles.findIndex(
       (item) => item.organizationId === organizationId && item.id === role.id,
     )
     if (index < 0) throw new Error("Role not found.")
-    this.roles[index] = {
+    this.customRoles[index] = {
       ...role,
       updatedAt: new Date().toISOString(),
     }
-    return structuredClone(this.roles[index])
+    return structuredClone(this.customRoles[index])
   }
 
   private async setStatus(
@@ -155,7 +168,7 @@ export class MockAdministratorRepository implements AdministratorRepository {
   }
 
   private requireAdministrator(organizationId: string, id: string) {
-    const administrator = this.administrators.find(
+    const administrator = this.administrators.of(organizationId).find(
       (item) => item.organizationId === organizationId && item.id === id,
     )
     if (!administrator) throw new Error("Administrator not found.")
@@ -163,15 +176,11 @@ export class MockAdministratorRepository implements AdministratorRepository {
   }
 
   private assertRoles(organizationId: string, roleIds: string[]) {
-    if (
-      roleIds.some(
-        (roleId) =>
-          !this.roles.some(
-            (role) =>
-              role.organizationId === organizationId && role.id === roleId,
-          ),
-      )
-    ) {
+    const available = [
+      ...systemRolesFor(organizationId),
+      ...this.customRoles.filter((role) => role.organizationId === organizationId),
+    ]
+    if (roleIds.some((roleId) => !available.some((role) => role.id === roleId))) {
       throw new Error("One or more selected roles are invalid.")
     }
   }

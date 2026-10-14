@@ -10,13 +10,12 @@ import { MemberWalletPanel } from "@/features/wallet"
 import { FrequencyBadge } from "@/features/contributions/components/ContributionUi"
 import { ParticipantStateBadge } from "@/features/dues/components/DuesUi"
 import { useMember, useMemberMoney, useMembers } from "@/features/members"
-import { MEMBER_ORG_ID } from "../constants"
+import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { useMemberApplications } from "../hooks/useMemberApplications"
 import { RecordMemberPayment } from "./RecordMemberPayment"
 import type { Member, View } from "@/types"
 import type { LoanStatus } from "@/features/loans/types/loan.types"
-
-const organizationId = MEMBER_ORG_ID
 
 const loanTones: Record<LoanStatus, "green" | "blue" | "amber" | "red" | "neutral"> = {
   Active: "blue",
@@ -44,6 +43,8 @@ export function MembersPage({
   const [filter, setFilter] = useState("All members")
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
+  const organizationId = useOrganizationId()
+  const { can } = useAuthorization()
   const { members, status, error, retry } = useMembers(organizationId)
   const applications = useMemberApplications(organizationId)
   const waiting = (applications.data?.applications ?? []).filter(
@@ -111,13 +112,21 @@ export function MembersPage({
       description="Every member's account, contributions, loans and wallet in one place."
       actions={
         <>
-          <Button variant="secondary" icon={ClipboardCheck} onClick={onApplications}>
-            Applications{waiting > 0 ? ` (${waiting})` : ""}
-          </Button>
-          <Button variant="secondary" icon={Download} onClick={onImport}>
-            Import members
-          </Button>
-          <Button icon={UserPlus} onClick={onAdd}>Add member</Button>
+          {can("members.view_applications") && (
+            <Button variant="secondary" icon={ClipboardCheck} onClick={onApplications}>
+              Applications{waiting > 0 ? ` (${waiting})` : ""}
+            </Button>
+          )}
+          {can("members.import") && (
+            <Button variant="secondary" icon={Download} onClick={onImport}>
+              Import members
+            </Button>
+          )}
+          {can("members.create") && (
+            <Button icon={UserPlus} onClick={onAdd}>
+              Add member
+            </Button>
+          )}
         </>
       }
     >
@@ -156,11 +165,20 @@ export function MembersPage({
           total={visible.length}
           onPageChange={setPage}
           empty={
-            <EmptyState
-              title="No members found"
-              description="Adjust the search or the status filter, or add a member."
-              action={<Button onClick={onAdd}>Add member</Button>}
-            />
+            // An empty register and a filter that matched nothing are different situations.
+            members.length === 0 ? (
+              <EmptyState
+                title="No members yet"
+                description={
+                  can("members.create")
+                    ? "Add a member or import your register to start tracking contributions, dues and loans."
+                    : "Nobody has been added to this community yet."
+                }
+                action={can("members.create") ? <Button onClick={onAdd}>Add member</Button> : undefined}
+              />
+            ) : (
+              <EmptyState title="No members found" description="No member matches the search or the status filter." />
+            )
           }
         />
       </div>
@@ -239,9 +257,7 @@ function MemberProfileBody({
               Account {member.accountStatus.toLowerCase()}
             </Badge>
             {!loading && obligations.totalDue > 0 && (
-              <Badge tone={obligations.overdueCount > 0 ? "red" : "amber"}>
-                {money(obligations.totalDue)} due
-              </Badge>
+              <Badge tone={obligations.overdueCount > 0 ? "red" : "amber"}>{money(obligations.totalDue)} due</Badge>
             )}
           </>
         }
@@ -318,19 +334,25 @@ function MemberProfileBody({
                       id: "contributed",
                       header: "Contributed",
                       render: (plan) =>
-                        money(memberMoney.participants.find((row) => row.contributionId === plan.id)?.totalContributed ?? 0),
+                        money(
+                          memberMoney.participants.find((row) => row.contributionId === plan.id)?.totalContributed ?? 0,
+                        ),
                     },
                     {
                       id: "balance",
                       header: "Balance",
                       render: (plan) =>
-                        money(memberMoney.participants.find((row) => row.contributionId === plan.id)?.availableBalance ?? 0),
+                        money(
+                          memberMoney.participants.find((row) => row.contributionId === plan.id)?.availableBalance ?? 0,
+                        ),
                     },
                     {
                       id: "expected",
                       header: "Expected",
                       render: (plan) =>
-                        money(memberMoney.participants.find((row) => row.contributionId === plan.id)?.expectedAmount ?? 0),
+                        money(
+                          memberMoney.participants.find((row) => row.contributionId === plan.id)?.expectedAmount ?? 0,
+                        ),
                     },
                   ]}
                 />
@@ -393,11 +415,17 @@ function MemberProfileBody({
                       render: (row) => (
                         <span className="member-cell">
                           <b>{row.name}</b>
-                          <span>{money(row.amount)} per {row.frequency === "One-time" ? "payment" : "period"}</span>
+                          <span>
+                            {money(row.amount)} per {row.frequency === "One-time" ? "payment" : "period"}
+                          </span>
                         </span>
                       ),
                     },
-                    { id: "paid", header: "Paid", render: (row) => money(memberMoney.duesTotalsFor(row.id)?.paid ?? 0) },
+                    {
+                      id: "paid",
+                      header: "Paid",
+                      render: (row) => money(memberMoney.duesTotalsFor(row.id)?.paid ?? 0),
+                    },
                     {
                       id: "outstanding",
                       header: "Outstanding",
@@ -638,16 +666,16 @@ function OverviewTab({
 
       {summary.missedContributions > 0 && (
         <p className="contribution-hint">
-          {summary.missedContributions} missed {summary.missedContributions === 1 ? "contribution" : "contributions"}.
-          A missed contribution stays payable — the plan keeps running.
+          {summary.missedContributions} missed {summary.missedContributions === 1 ? "contribution" : "contributions"}. A
+          missed contribution stays payable — the plan keeps running.
         </p>
       )}
 
       {summary.duesOutstanding > 0 && (
         <p className="contribution-hint">
           {money(summary.duesOutstanding)} of dues outstanding
-          {summary.overdueDues > 0 ? `, ${summary.overdueDues} overdue` : ""}. Unpaid dues are recovered from this member&apos;s
-          wallet when the plan&apos;s lien rules allow it.
+          {summary.overdueDues > 0 ? `, ${summary.overdueDues} overdue` : ""}. Unpaid dues are recovered from this
+          member&apos;s wallet when the plan&apos;s lien rules allow it.
         </p>
       )}
     </>

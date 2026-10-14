@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { Folder, MoreHorizontal, Plus } from "@/icons"
-import { branchesMock } from "@/features/branches/mocks/branches.mock"
-import { membersMock } from "@/features/members/mocks/members.mock"
-import { groupTypesMock } from "../mocks/groups.mock"
+import { useBranches } from "@/features/branches/hooks/useBranches"
+import { useMembers } from "@/features/members/hooks/useMembers"
 import { useGroups } from "../hooks/useGroups"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import {
@@ -25,7 +25,6 @@ import type { CreateGroupInput, Group } from "@/types"
 import { GroupForm } from "./GroupForm"
 import { GroupStatusBadge } from "./GroupStatusBadge"
 
-const organizationId = "org-lagos-farmers"
 const pageSize = 5
 
 export function GroupsPage({
@@ -35,8 +34,10 @@ export function GroupsPage({
   onViewGroup: (id: string) => void
   notify: (message: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const {
     groups,
+    groupTypes,
     status,
     error,
     retry,
@@ -44,6 +45,10 @@ export function GroupsPage({
     archiveGroup,
     activateGroup,
   } = useGroups(organizationId)
+  // Branches and members belong to the community being looked at, so they come from the service
+  // rather than from a seeded list.
+  const { branches } = useBranches(organizationId)
+  const { members } = useMembers(organizationId)
   const { can, canAccessBranch } = useAuthorization()
   const [search, setSearch] = useState("")
   const [type, setType] = useState("All types")
@@ -60,10 +65,10 @@ export function GroupsPage({
     return groups
       .filter((group) => {
         if (group.branchId && !canAccessBranch(group.branchId)) return false
-        const coordinator = membersMock.find(
+        const coordinator = members.find(
           (member) => member.id === group.coordinatorMemberId,
         )?.name
-        const branchName = branchesMock.find(
+        const branchName = branches.find(
           (item) => item.id === group.branchId,
         )?.name
         return (
@@ -72,7 +77,7 @@ export function GroupsPage({
               value?.toLowerCase().includes(query),
             )) &&
           (type === "All types" ||
-            groupTypesMock.find((item) => item.id === group.typeId)?.name ===
+            groupTypes.find((item) => item.id === group.typeId)?.name ===
               type) &&
           (branch === "All branches" || branchName === branch) &&
           (groupStatus === "All statuses" || group.status === groupStatus)
@@ -106,14 +111,14 @@ export function GroupsPage({
       id: "type",
       header: "Type",
       render: (group) =>
-        groupTypesMock.find((item) => item.id === group.typeId)?.name ??
+        groupTypes.find((item) => item.id === group.typeId)?.name ??
         "Other",
     },
     {
       id: "branch",
       header: "Branch",
       render: (group) =>
-        branchesMock.find((item) => item.id === group.branchId)?.name ??
+        branches.find((item) => item.id === group.branchId)?.name ??
         "Organization-wide",
     },
     { id: "members", header: "Members", render: (group) => group.memberCount },
@@ -121,7 +126,7 @@ export function GroupsPage({
       id: "coordinator",
       header: "Coordinator",
       render: (group) =>
-        membersMock.find((member) => member.id === group.coordinatorMemberId)
+        members.find((member) => member.id === group.coordinatorMemberId)
           ?.name ?? <Badge tone="amber">Unassigned</Badge>,
     },
     {
@@ -211,7 +216,7 @@ export function GroupsPage({
               onChange={(event) => setType(event.target.value)}
             >
               <option>All types</option>
-              {groupTypesMock.map((item) => (
+              {groupTypes.map((item) => (
                 <option key={item.id}>{item.name}</option>
               ))}
             </select>
@@ -220,7 +225,7 @@ export function GroupsPage({
               onChange={(event) => setBranch(event.target.value)}
             >
               <option>All branches</option>
-              {branchesMock.map((item) => (
+              {branches.map((item) => (
                 <option key={item.id}>{item.name}</option>
               ))}
             </select>
@@ -294,9 +299,9 @@ export function GroupsPage({
       <GroupForm
         key={formOpen ? "open" : "closed"}
         open={formOpen}
-        groupTypes={groupTypesMock}
-        branches={branchesMock}
-        members={membersMock}
+        groupTypes={groupTypes}
+        branches={branches}
+        members={members}
         onClose={() => setFormOpen(false)}
         onSubmit={async (input: CreateGroupInput) => {
           await createGroup(input)

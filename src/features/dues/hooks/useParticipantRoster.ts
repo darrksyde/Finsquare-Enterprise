@@ -3,7 +3,7 @@ import { groupsService } from "@/features/groups/services/groups.service"
 import { useBranches } from "@/features/branches/hooks/useBranches"
 import { useGroups } from "@/features/groups/hooks/useGroups"
 import { useMembers } from "@/features/members/hooks/useMembers"
-import { DUES_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { resolveParticipantRoster } from "../domain/participants"
 import type { DuesParticipantSelection, DuesRosterEntry } from "../types/dues.types"
 import type { GroupMembership } from "@/types"
@@ -14,17 +14,18 @@ import type { GroupMembership } from "@/types"
  * row per group in the organization. The backend will do this in a single call.
  */
 function useGroupMembershipRows(groupId?: string): GroupMembership[] {
+  const organizationId = useOrganizationId()
   const [memberships, setMemberships] = useState<GroupMembership[]>([])
   useEffect(() => {
     let active = true
     const load: Promise<GroupMembership[]> = groupId
-      ? groupsService.getGroupMembers(DUES_ORG_ID, groupId)
+      ? groupsService.getGroupMembers(organizationId, groupId)
       : Promise.resolve([])
     load.then((rows) => active && setMemberships(rows)).catch(() => active && setMemberships([]))
     return () => {
       active = false
     }
-  }, [groupId])
+  }, [organizationId, groupId])
   return memberships
 }
 /**
@@ -33,9 +34,10 @@ function useGroupMembershipRows(groupId?: string): GroupMembership[] {
  * shows the resulting count before saving.
  */
 export function useParticipantRoster(selection: DuesParticipantSelection) {
-  const members = useMembers(DUES_ORG_ID)
-  const groups = useGroups(DUES_ORG_ID)
-  const branches = useBranches(DUES_ORG_ID)
+  const organizationId = useOrganizationId()
+  const members = useMembers(organizationId)
+  const groups = useGroups(organizationId)
+  const branches = useBranches(organizationId)
   const memberships = useGroupMembershipRows(selection.groupId)
   const key = [
     selection.scope,

@@ -1,4 +1,6 @@
 import { groupsMock } from "@/features/groups/mocks/groups.mock"
+import { createTenantStore } from "@/lib/tenancy/tenant-store"
+import { isSeedTenant } from "@/lib/tenancy/seed-tenant"
 import { membersMock } from "../mocks/members.mock"
 import { defaultMapping, formatJoinedDate, parseCsv, type ImportTarget } from "../domain/member-import"
 import type {
@@ -10,26 +12,39 @@ import type {
 } from "@/types"
 import type { MemberRepository } from "./members.repository"
 
-let records = [...membersMock]
+/** One community's register, with the sequence its next member id comes from. */
+interface MemberRegister {
+  records: Member[]
+  nextSequence: number
+}
+
 const listeners = new Set<() => void>()
 const notify = () => listeners.forEach((listener) => listener())
-
-/** A new member lands in the group the application was configured with. */
-const groupNameOf = (groupIds: string[]) =>
-  groupsMock.find((group) => group.id === groupIds[0])?.name ?? "New members"
 
 /**
  * Members are numbered above the highest record already present. Counting `records.length` instead
  * would reissue an id after a delete, and would hand the same id to every record in an import.
  */
-let nextSequence = records.reduce(
-  (highest, member) => Math.max(highest, Number(member.id.replace(/\D/g, "")) || 0),
-  0,
-)
-const nextId = () => `LFC-${String((nextSequence += 1)).padStart(6, "0")}`
+const highestId = (records: Member[]) =>
+  records.reduce((highest, member) => Math.max(highest, Number(member.id.replace(/\D/g, "")) || 0), 0)
 
-const buildMember = (input: CreateMemberInput, joinedAt?: string): Member => ({
-  id: nextId(),
+const registers = createTenantStore<MemberRegister>({
+  seed: () => ({ records: [...membersMock], nextSequence: highestId(membersMock) }),
+  empty: () => ({ records: [], nextSequence: 0 }),
+})
+
+/** A new member lands in a group of its own community; the seeded list belongs to the seeded one. */
+const groupNameOf = (organizationId: string, groupIds: string[]) =>
+  (isSeedTenant(organizationId) ? groupsMock : []).find((group) => group.id === groupIds[0])?.name ??
+  "New members"
+
+const buildMember = (
+  organizationId: string,
+  register: MemberRegister,
+  input: CreateMemberInput,
+  joinedAt?: string,
+): Member => ({
+  id: `LFC-${String((register.nextSequence += 1)).padStart(6, "0")}`,
   name: input.name,
   phone: input.phone,
   email: input.email,
@@ -37,7 +52,7 @@ const buildMember = (input: CreateMemberInput, joinedAt?: string): Member => ({
   address: input.address,
   nin: input.nin,
   bvn: input.bvn,
-  group: groupNameOf(input.groupIds),
+  group: groupNameOf(organizationId, input.groupIds),
   branchId: input.branchId,
   status: input.status ?? "Pending",
   accountStatus: "Created",
@@ -51,43 +66,46 @@ const buildMember = (input: CreateMemberInput, joinedAt?: string): Member => ({
 })
 
 export class MockMemberRepository implements MemberRepository {
-  async getAll(): Promise<Member[]> {
-    return structuredClone(records)
+  async getAll(organizationId: string): Promise<Member[]> {
+    return structuredClone(registers.of(organizationId).records)
   }
 
   async getById(
-    _organizationId: string,
+    organizationId: string,
     memberId: string,
   ): Promise<Member | null> {
     return structuredClone(
-      records.find((member) => member.id === memberId) ?? null,
+      registers.of(organizationId).records.find((member) => member.id === memberId) ?? null,
     )
   }
 
   async create(
-    _organizationId: string,
+    organizationId: string,
     input: CreateMemberInput,
   ): Promise<Member> {
-    const member = buildMember(input)
-    records = [member, ...records]
+    const register = registers.of(organizationId)
+    const member = buildMember(organizationId, register, input)
+    register.records = [member, ...register.records]
     notify()
     return structuredClone(member)
   }
 
   async update(
-    _organizationId: string,
+    organizationId: string,
     memberId: string,
     input: UpdateMemberInput,
   ): Promise<Member> {
-    const index = records.findIndex((member) => member.id === memberId)
+    const register = registers.of(organizationId)
+    const index = register.records.findIndex((member) => member.id === memberId)
     if (index < 0) throw new Error("Member not found.")
-    records[index] = { ...records[index], ...input }
+    register.records[index] = { ...register.records[index], ...input }
     notify()
-    return structuredClone(records[index])
+    return structuredClone(register.records[index])
   }
 
-  async delete(_organizationId: string, memberId: string): Promise<void> {
-    records = records.filter((member) => member.id !== memberId)
+  async delete(organizationId: string, memberId: string): Promise<void> {
+    const register = registers.of(organizationId)
+    register.records = register.records.filter((member) => member.id !== memberId)
     notify()
   }
 
@@ -97,7 +115,7 @@ export class MockMemberRepository implements MemberRepository {
    * backend would return, which is why the caller never has to guess what happened.
    */
   async import(
-    _organizationId: string,
+    organizationId: string,
     file: File,
     mapping?: ImportTarget[],
   ): Promise<MemberImportResult> {
@@ -107,6 +125,7 @@ export class MockMemberRepository implements MemberRepository {
       const index = columns.indexOf(target)
       return index >= 0 ? (row[index] ?? "").trim() : ""
     }
+    const register = registers.of(organizationId)
 
     const errors: MemberImportError[] = []
     const created: Member[] = []
@@ -121,6 +140,8 @@ export class MockMemberRepository implements MemberRepository {
       }
       created.push(
         buildMember(
+          organizationId,
+          register,
           {
             name,
             phone,
@@ -134,7 +155,7 @@ export class MockMemberRepository implements MemberRepository {
     })
 
     if (created.length) {
-      records = [...created, ...records]
+      register.records = [...created, ...register.records]
       notify()
     }
 

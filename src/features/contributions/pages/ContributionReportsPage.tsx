@@ -4,7 +4,7 @@ import { Button, Disclosure, SectionHeader } from "@/components/ui"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import { Tabs } from "@/components/ui"
 import { SearchInput } from "@/components/data-display/ManagementPrimitives"
-import { CONTRIBUTION_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import {
   collectionHistory,
   commissionReport,
@@ -34,7 +34,8 @@ export default function ContributionReportsPage({ embedded, ...props }: Contribu
 
 /** Used by the central Reports page, which already renders its own page shell and tabs. */
 function EmbeddedReports() {
-  const resource = useContributions(CONTRIBUTION_ORG_ID)
+  const organizationId = useOrganizationId()
+  const resource = useContributions(organizationId)
   const { can } = useAuthorization()
   if (resource.error) return <ErrorState message={resource.error} retry={resource.retry} />
   if (!resource.data) return <LoadingState label="Loading contribution reports…" />

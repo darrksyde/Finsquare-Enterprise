@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Badge, Button } from "@/components/ui"
-import { administratorsMock, rolesMock } from "@/features/administrators/mocks/administrators.mock"
+import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
+import { useAdministrators } from "@/features/administrators/hooks/useAdministrators"
 import { ActionModal, NumField, PagedTable, Panel, Tabs } from "@/features/loans/components/LoanUi"
 import { WALLET_PERMISSIONS, type AccessSubject, type WalletAccess as Access, type WalletLimits, type WalletPermission } from "../types/wallet.types"
 import ApprovalRules from "./ApprovalRules"
@@ -10,7 +11,10 @@ type Tab = "access" | "limits" | "rules" | "audit"
 
 function AccessEditor({ ctx, entry, onClose }: { ctx: WalletCtx; entry: Access; onClose: () => void }) {
   const [e, setE] = useState(entry)
-  const subjects = e.subjectType === "role" ? rolesMock.map((r) => ({ id: r.id, name: r.name })) : administratorsMock.map((a) => ({ id: a.id, name: a.name }))
+  // The people and roles a grant can name belong to this community.
+  const { roles } = useAuthorization()
+  const { administrators } = useAdministrators(ctx.organizationId)
+  const subjects = e.subjectType === "role" ? roles.map((r) => ({ id: r.id, name: r.name })) : administrators.map((a) => ({ id: a.id, name: a.name }))
   const toggle = (p: WalletPermission) => setE({ ...e, permissions: e.permissions.includes(p) ? e.permissions.filter((x) => x !== p) : [...e.permissions, p] })
   return (
     <ActionModal title={entry.subjectId ? "Edit access" : "Grant access"} submitLabel="Save access" onClose={onClose}

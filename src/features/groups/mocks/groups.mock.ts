@@ -1,6 +1,7 @@
 import type { Group, GroupMembership, GroupType } from "@/types"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 
-const organizationId = "org-lagos-farmers"
+const organizationId = SEED_ORGANIZATION_ID
 
 export const groupTypesMock: GroupType[] = [
   { id: "committee", organizationId, name: "Committee", isSystem: true },
@@ -182,3 +183,4 @@ export const groupMembershipsMock: GroupMembership[] = [
     joinedAt: "2023-03-11T09:00:00.000Z",
   },
 ]
+

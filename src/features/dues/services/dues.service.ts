@@ -1,6 +1,6 @@
 import { env } from "@/app/config/env"
 import { memberWalletFor } from "@/features/wallet/domain/wallet.rules"
-import { walletService, type Mode } from "@/features/wallet/services/wallet.service"
+import { walletServiceFor, type Mode } from "@/features/wallet/services/wallet.service"
 import { generateCharges, round2, toISODate } from "../domain/schedule"
 import { lienRecoverable, outstandingOf, recoveryAllocation, syncCharge, syncCharges } from "../domain/dues.rules"
 import { ApiDuesRepository } from "../repositories/api-dues.repository"
@@ -185,7 +185,7 @@ export class DuesService {
     }
     // The wallet pays first: dues are only recorded once the money has actually moved.
     if (input.method === "wallet") {
-      await this.debitMemberWallet(plan, participant, amount, ctx)
+      await this.debitMemberWallet(organizationId, plan, participant, amount, ctx)
     }
     const distributed = this.distribute(dataset.charges, owed, amount)
     const transaction: DuesTransaction = {
@@ -239,7 +239,7 @@ export class DuesService {
       const today = toISODate(new Date())
       const dataset = await this.repo.load(organizationId)
       const plansById = new Map(dataset.plans.map((plan) => [plan.id, plan]))
-      const walletData = await walletService.load()
+      const walletData = await walletServiceFor(organizationId).load()
       const candidates = syncCharges(dataset.charges, dataset.plans, today).filter((charge) => {
         const plan = plansById.get(charge.duesPlanId)
         if (!plan) return false
@@ -272,7 +272,7 @@ export class DuesService {
           const plan = plansById.get(line.charge.duesPlanId)
           if (!plan) continue
           try {
-            await walletService.spend(
+            await walletServiceFor(organizationId).spend(
               {
                 walletId: wallet.id,
                 amount: line.amount,
@@ -335,7 +335,7 @@ export class DuesService {
    * knows the environment's money-movement mode.
    */
   startAutoRecovery(organizationId: string, mode: Mode): () => void {
-    return walletService.onWalletsCredited((wallets) => {
+    return walletServiceFor(organizationId).onWalletsCredited((wallets) => {
       const memberIds = new Set(
         wallets
           .filter((wallet) => wallet.scope === "member" && wallet.memberId)
@@ -392,16 +392,17 @@ export class DuesService {
     return [...byId.values()]
   }
   private async debitMemberWallet(
+    organizationId: string,
     plan: DuesPlan,
     participant: DuesParticipant,
     amount: number,
     ctx: MutationContext,
   ): Promise<void> {
-    const wallet = await walletService.ensureMemberWallet(
+    const wallet = await walletServiceFor(organizationId).ensureMemberWallet(
       { memberId: participant.memberId, memberName: participant.memberName },
       ctx.actor,
     )
-    await walletService.spend(
+    await walletServiceFor(organizationId).spend(
       {
         walletId: wallet.id,
         amount,

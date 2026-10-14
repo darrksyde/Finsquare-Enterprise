@@ -28,8 +28,13 @@ Activity tabs) and `/dues/new` (one-page creation). The detail route is register
 
 The sidebar's `Documents` item sits in the Communications section but is not in
 `DEFAULT_ENABLED_MODULES`, so it is not rendered. Enabled modules come from that constant and from
-the Modules settings page (the `modules/replaced` action) — `organizationMock.enabledModules` is not
-read anywhere.
+the Modules settings page (the `modules/replaced` action), and they are **per community** — the
+action applies to the active community's slice, never to the other ones you belong to.
+
+The sidebar's **community switcher** is not a `View`: it lists the communities you belong to with the
+role you hold in each, and `Create a community` opens `community-create` (`/communities/new`) — a
+`secondaryAccess` entry with `nav: "overview"` and no permission of its own, because starting a
+community is a platform-level action rather than a permission inside one. See `communities.md`.
 
 Wallet is one sidebar item; Branch wallets, Transactions and Access & controls are reached from the Wallet page and registered in `secondaryAccess`. A member's own wallet is not a Wallet sub-page — it lives on the member profile (`/members/:id`, Wallet tab), so every one of a member's money surfaces is in one place.
 

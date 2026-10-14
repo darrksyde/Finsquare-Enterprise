@@ -6,7 +6,7 @@ import { newForm, systemSteps, GUARANTOR_DOC_FIELDS } from "../domain/loan-forms
 import { publishedVersion, workingVersion } from "@/features/forms/domain/forms"
 import { FormBuilder } from "@/features/forms/components/FormBuilder"
 import { useQuestionLibrary } from "@/features/forms/hooks/useQuestionLibrary"
-import { FORMS_ORG_ID } from "@/features/forms/constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { KV, NumField, Panel, TextArea, money, type LoanCtx } from "./LoanUi"
 import type { ApplicationType, FormVersion, LoanApplicationForm } from "../types/form.types"
 import type { DeductionModel, DurationUnit, InterestType, LoanProduct, RepaymentFrequency } from "../types/loan.types"
@@ -28,7 +28,8 @@ const TYPES: [ApplicationType, string][] = [
 
 export function ProductWizard({ ctx, initial, startStep = 0, onClose }: { ctx: LoanCtx; initial: LoanProduct | null; startStep?: number; onClose: () => void }) {
   const { data, service, notify, can } = ctx
-  const questionLibrary = useQuestionLibrary(FORMS_ORG_ID)
+  const organizationId = useOrganizationId()
+  const questionLibrary = useQuestionLibrary(organizationId)
   const [p, setP] = useState<LoanProduct>(initial ?? blankProduct())
   const [form, setForm] = useState<LoanApplicationForm>(() => data.forms.find((f) => f.productId === p.id) ?? newForm(p))
   const [version, setVersion] = useState<FormVersion>(() => workingVersion(form))

@@ -1,20 +1,20 @@
 import { useState } from "react"
 import { ShieldCheck } from "@/icons"
-import { branchesMock } from "@/features/branches/mocks/branches.mock"
+import { useBranches } from "@/features/branches/hooks/useBranches"
 import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog"
 import { Button, SectionHeader, SelectField } from "@/components/ui"
 import { useAdministrator, useAdministrators } from "../hooks/useAdministrators"
 import { useAuthorization } from "../hooks/useAuthorization"
 import { AdministratorStatusBadge } from "./AdministratorStatusBadge"
-
-const organizationId = "org-lagos-farmers"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 
 export function AdministratorDetailsPage({
   administratorId,
 }: {
   administratorId: string
 }) {
+  const organizationId = useOrganizationId()
   const {
     data: administrator,
     status,
@@ -22,6 +22,8 @@ export function AdministratorDetailsPage({
     retry,
   } = useAdministrator(organizationId, administratorId)
   const { roles, update, deactivate } = useAdministrators(organizationId)
+  // Branch names and options belong to the community being managed, so they come from the service.
+  const { branches } = useBranches(organizationId)
   const { can } = useAuthorization()
   const [editing, setEditing] = useState(false)
   const [roleName, setRoleName] = useState("")
@@ -57,9 +59,9 @@ export function AdministratorDetailsPage({
                   )
                   setScopeType(administrator.accessScope.type)
                   setBranchName(
-                    branchesMock.find((branch) =>
+                    branches.find((branch) =>
                       administrator.accessScope.branchIds?.includes(branch.id),
-                    )?.name ?? branchesMock[0].name,
+                    )?.name ?? branches[0].name,
                   )
                   setEditing(!editing)
                 }}
@@ -111,7 +113,7 @@ export function AdministratorDetailsPage({
                 {administrator.accessScope.branchIds
                   ?.map(
                     (id) =>
-                      branchesMock.find((branch) => branch.id === id)?.name,
+                      branches.find((branch) => branch.id === id)?.name,
                   )
                   .join(", ") ?? "All branches"}
               </b>
@@ -145,7 +147,7 @@ export function AdministratorDetailsPage({
                 <SelectField
                   label="Branch"
                   value={branchName}
-                  options={branchesMock.map((branch) => branch.name)}
+                  options={branches.map((branch) => branch.name)}
                   onChange={setBranchName}
                 />
               )}
@@ -153,7 +155,7 @@ export function AdministratorDetailsPage({
                 onClick={() => {
                   const roleId = roles.find((role) => role.name === roleName)
                     ?.id
-                  const branchId = branchesMock.find(
+                  const branchId = branches.find(
                     (branch) => branch.name === branchName,
                   )?.id
                   if (!roleId) return

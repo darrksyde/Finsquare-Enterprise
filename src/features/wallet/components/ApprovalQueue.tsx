@@ -1,12 +1,14 @@
 import { useState } from "react"
 import { Badge, Button } from "@/components/ui"
-import { loansService } from "@/features/loans"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
+import { loansServiceFor } from "@/features/loans"
 import { ActionModal, PagedTable, Panel, TextArea, fmtDate } from "@/features/loans/components/LoanUi"
 import { requiredApprovals } from "../domain/wallet.rules"
 import type { ApprovalKind, WalletApproval } from "../types/wallet.types"
 import { money, type WalletCtx } from "./WalletShell"
 
 export default function ApprovalQueue({ ctx, kind }: { ctx: WalletCtx; kind: ApprovalKind }) {
+  const organizationId = useOrganizationId()
   const [active, setActive] = useState<{ a: WalletApproval; decision: "approve" | "reject" } | null>(null)
   const [note, setNote] = useState("")
   const rows = ctx.data.approvals.filter((a) => a.kind === kind && ctx.wallets.some((w) => w.id === a.walletId))
@@ -44,7 +46,7 @@ export default function ApprovalQueue({ ctx, kind }: { ctx: WalletCtx; kind: App
             try {
               const r = await ctx.service.decide(active.a.id, active.decision, ctx.actor, note, ctx.mode)
               if (r.final && r.approved && active.a.kind === "Disbursement" && active.a.items) {
-                await loansService.disburse(active.a.items.map((i) => i.applicationId), "Bank transfer")
+                await loansServiceFor(organizationId).disburse(active.a.items.map((i) => i.applicationId), "Bank transfer")
                 ctx.notify("Approved — wallet debited and loans disbursed")
               } else ctx.notify(r.final ? (r.approved ? "Approved and completed" : "Request rejected") : "Approval recorded — more approvals are required")
             } catch (e) {

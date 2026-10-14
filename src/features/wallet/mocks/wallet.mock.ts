@@ -1,10 +1,11 @@
 import { membersMock } from "@/features/members/mocks/members.mock"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import type {
   ApprovalRule, FundingMethod, OrganizationAccount, Wallet, WalletAccess, WalletApproval, WalletAuditLog,
   WalletDataset, WalletLimits, WalletPermission, WalletTransaction, TransactionStatus, TransactionType,
 } from "../types/wallet.types"
 
-const orgId = "org-lagos-farmers"
+const orgId = SEED_ORGANIZATION_ID
 const daysAgo = (d: number, h = 10) => {
   const x = new Date()
   x.setDate(x.getDate() - d)
@@ -138,3 +139,4 @@ export function createWalletDataset(): WalletDataset {
     approvals: approvalsMock.map((a) => ({ ...a })), rules: [...rulesMock], audit: [...auditMock], fundingMethods: [...fundingMethodsMock],
   }
 }
+

@@ -1,6 +1,6 @@
 export * from "./types/loan.types"
-export { useLoans } from "./hooks/useLoans"
-export { loansService } from "./services/loans.service"
+export { useLoans, useLoansFor } from "./hooks/useLoans"
+export { loansService, loansServiceFor } from "./services/loans.service"
 export { LoansOverviewPage } from "./pages/LoansOverviewPage"
 export { LoanApplicationsPage } from "./pages/LoanApplicationsPage"
 export { LoanApplicationDetailPage } from "./pages/LoanApplicationDetailPage"

@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import { ResponseSections } from "@/features/forms/components/ResponseSections"
 import { ActionModal, KV, Panel, TextArea, fmtDate } from "@/features/loans/components/LoanUi"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
-import { MEMBER_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { useMemberApplications } from "../hooks/useMemberApplications"
 import { applicantEmail, applicantName, applicantPhone } from "../domain/member-application.rules"
 import { applicationDecisionSchema } from "../schemas/member-application.schema"
@@ -20,7 +20,8 @@ const ACTOR = "Admin User"
  * what the administrator reviews is exactly what the applicant submitted.
  */
 export function MemberApplicationDetailPage({ applicationId, navigate, notify }: { applicationId: string; navigate: (view: View, id?: string) => void; notify: (message: string) => void }) {
-  const { data, status, error, retry, service } = useMemberApplications(MEMBER_ORG_ID)
+  const organizationId = useOrganizationId()
+  const { data, status, error, retry, service } = useMemberApplications(organizationId)
   const { can } = useAuthorization()
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState("")
@@ -48,7 +49,7 @@ export function MemberApplicationDetailPage({ applicationId, navigate, notify }:
   const approve = async () => {
     setBusy(true)
     try {
-      const approved = await service.approve(MEMBER_ORG_ID, application, ACTOR)
+      const approved = await service.approve(organizationId, application, ACTOR)
       notify(`${approved.memberId} created from this application`)
       navigate("member-profile", approved.memberId)
     } finally {
@@ -116,7 +117,7 @@ export function MemberApplicationDetailPage({ applicationId, navigate, notify }:
           disabled={!applicationDecisionSchema.safeParse({ reason }).success}
           onClose={() => setRejecting(false)}
           onSubmit={async () => {
-            await service.reject(MEMBER_ORG_ID, application, reason, ACTOR)
+            await service.reject(organizationId, application, reason, ACTOR)
             notify(`${application.reference} rejected`)
             setRejecting(false)
           }}

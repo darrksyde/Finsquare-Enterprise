@@ -10,7 +10,6 @@ import { PlanPayments } from "../components/PlanPayments"
 import { PlanActivity } from "../components/PlanActivity"
 import { LienRulesModal, RecordDuesPaymentModal, RecoveryConfirmModal } from "../components/DuesModals"
 import { lienRulesLabel } from "../domain/dues.rules"
-import { DUES_ORG_ID } from "../constants"
 import { money } from "@/features/loans/components/LoanUi"
 import type { DuesCtx, DuesPageProps } from "../components/DuesUi"
 import type { DuesPlanStatus } from "../types/dues.types"
@@ -184,7 +183,7 @@ function DetailBody({ ctx }: { ctx: DuesCtx }) {
   )
 }
 async function setStatus(ctx: DuesCtx, planId: string, status: DuesPlanStatus) {
-  const updated = await ctx.service.setStatus(DUES_ORG_ID, planId, status)
+  const updated = await ctx.service.setStatus(ctx.organizationId, planId, status)
   if (updated) ctx.notify(`${updated.name} is now ${status.toLowerCase()}`)
   ctx.retry()
 }

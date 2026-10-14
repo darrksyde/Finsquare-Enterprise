@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom"
-import { lazy, Suspense, useMemo, useState, type ReactNode } from "react"
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react"
 import { Menu } from "@/icons"
 import { canAccessView } from "@/app/config/navigation"
 import {
@@ -13,16 +13,22 @@ import { useWorkspace } from "@/app/providers/WorkspaceProvider"
 import Brand from "@/components/layout/Brand"
 import { Sidebar } from "@/components/layout/AppShell"
 import { IconButton } from "@/components/ui"
-import {
-  DependencyModal,
-} from "@/components/feedback/ApplicationOverlays"
-import {
-  AccessDeniedState,
-  LoadingState,
-} from "@/components/feedback/AsyncState"
+import { DependencyModal } from "@/components/feedback/ApplicationOverlays"
+import { AccessDeniedState, LoadingState } from "@/components/feedback/AsyncState"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
+import { useCommunities, CreateCommunityPage } from "@/features/communities"
 import {
-  ActiveLoansPage, GuarantorsPage, LoanApplicationDetailPage, LoanApplicationsPage, LoanDetailPage, LoanProductsPage, DisbursementsPage, LoansOverviewPage, PublicApplicationPage, RecoveryPage, RepaymentsPage,
+  ActiveLoansPage,
+  GuarantorsPage,
+  LoanApplicationDetailPage,
+  LoanApplicationsPage,
+  LoanDetailPage,
+  LoanProductsPage,
+  DisbursementsPage,
+  LoansOverviewPage,
+  PublicApplicationPage,
+  RecoveryPage,
+  RepaymentsPage,
 } from "@/features/loans"
 import { AccessControls, TransactionTable, WalletList, WalletOverview, WalletPage } from "@/features/wallet"
 import ReportsPage from "@/features/reports/pages/ReportsPage"
@@ -34,10 +40,7 @@ import EnvironmentBanner from "@/features/onboarding/components/EnvironmentBanne
 import Breadcrumbs from "@/components/navigation/Breadcrumbs"
 import SettingsTabs from "@/features/settings/components/SettingsTabs"
 import { settingsTabFor } from "@/app/config/navigation"
-import {
-  CompliancePage,
-  CorporatePage,
-} from "@/features/compliance/components/CompliancePages"
+import { CompliancePage, CorporatePage } from "@/features/compliance/components/CompliancePages"
 import { DuesCreatePage, DuesDetailPage, DuesOverviewPage } from "@/features/dues"
 import {
   ContributionCreatePage,
@@ -55,18 +58,11 @@ import {
   MembersPage,
   PublicMemberApplicationPage,
 } from "@/features/members"
-import {
-  ModulesPage,
-  StructurePage,
-} from "@/features/organization/components/OrganizationPages"
+import { ModulesPage } from "@/features/organization/components/OrganizationPages"
+import { StructurePage } from "@/features/organization/components/StructurePage"
 import { Dashboard } from "@/features/overview/OverviewPage"
-import {
-  GenericPage,
-  SettingsPage,
-} from "@/features/settings/components/SettingsPages"
-import {
-  WorkflowsPage,
-} from "@/features/workflows/components/BuilderPages"
+import { GenericPage, SettingsPage } from "@/features/settings/components/SettingsPages"
+import { WorkflowsPage } from "@/features/workflows/components/BuilderPages"
 import type { CorporateAccountStatus } from "@/types"
 import { CommunicationsPage } from "@/features/communications"
 
@@ -91,14 +87,14 @@ const BranchDetailsPage = lazy(() =>
   })),
 )
 const AdministratorsPage = lazy(() =>
-  import("@/features/administrators/components/AdministratorsPage").then(
-    (module) => ({ default: module.AdministratorsPage }),
-  ),
+  import("@/features/administrators/components/AdministratorsPage").then((module) => ({
+    default: module.AdministratorsPage,
+  })),
 )
 const AdministratorDetailsPage = lazy(() =>
-  import("@/features/administrators/components/AdministratorDetailsPage").then(
-    (module) => ({ default: module.AdministratorDetailsPage }),
-  ),
+  import("@/features/administrators/components/AdministratorDetailsPage").then((module) => ({
+    default: module.AdministratorDetailsPage,
+  })),
 )
 const RolesPage = lazy(() =>
   import("@/features/administrators/components/RolesPage").then((module) => ({
@@ -114,6 +110,8 @@ export default function FinSquareApp() {
   const { can } = useAuthorization()
   const { signOut } = useAuth()
   const { pathname } = useLocation()
+  // The communities belong to whoever is signed in, so they are only asked for once there is a session.
+  const { communities } = useCommunities(Boolean(state.session))
   const [overlay, setOverlay] = useState<Overlay>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState("")
@@ -121,9 +119,12 @@ export default function FinSquareApp() {
   /** Which pre-shell screen to show while there is no session; "auto" follows the workspace state. */
   const [authScreen, setAuthScreen] = useState<"auto" | "signup">("auto")
 
-  const docsReady = state.complianceDocuments.every(
-    (document) => document === "Approved",
-  )
+  // The membership list is what tells the workspace which communities exist and what role the
+  // administrator holds in each, so it is folded into the store as soon as it arrives.
+  useEffect(() => {
+    if (!state.session || !communities.length) return
+    dispatch({ type: "communities/synced", value: communities })
+  }, [state.session, communities, dispatch])
 
   const identity = state.session?.name || state.admin.name || "Admin User"
   const identityInitials = identity
@@ -132,7 +133,9 @@ export default function FinSquareApp() {
     .map((word) => word[0])
     .join("")
     .toUpperCase()
-  const handleSignOut = () => { void signOut() }
+  const handleSignOut = () => {
+    void signOut()
+  }
 
   const notify = (text: string) => {
     setToast(text)
@@ -145,11 +148,7 @@ export default function FinSquareApp() {
     if (enabledModules.has(moduleId)) {
       const dependents = getEnabledDependents(moduleId, enabledModules)
       if (dependents.length) {
-        notify(
-          `${module.name} is required by ${dependents
-            .map((dependent) => dependent.name)
-            .join(", ")}`,
-        )
+        notify(`${module.name} is required by ${dependents.map((dependent) => dependent.name).join(", ")}`)
         return
       }
       dispatch({
@@ -187,7 +186,13 @@ export default function FinSquareApp() {
     content = <AccessDeniedState />
   } else if (view === "overview") {
     content = (
-      <Dashboard live={isLive} setView={navigate} onImport={() => setOverlay("import")} />
+      <Dashboard
+        live={isLive}
+        setView={navigate}
+        onImport={() => setOverlay("import")}
+        administratorName={identity.split(/\s+/)[0] || "there"}
+        organizationName={state.organization.name}
+      />
     )
   } else if (view === "members") {
     content = (
@@ -199,49 +204,36 @@ export default function FinSquareApp() {
       />
     )
   } else if (view === "member-profile") {
+    content = <MemberProfile memberId={entityId ?? ""} navigate={navigate} notify={notify} />
+  } else if (view === "groups") {
+    content = <GroupsPage onViewGroup={(id) => navigate("group-detail", id)} notify={notify} />
+  } else if (view === "group-detail") {
+    content = <GroupDetailsPage groupId={entityId ?? ""} notify={notify} />
+  } else if (view === "branches") {
+    content = <BranchesPage onViewBranch={(id) => navigate("branch-detail", id)} notify={notify} />
+  } else if (view === "branch-detail") {
+    content = <BranchDetailsPage branchId={entityId ?? ""} onViewGroup={(id) => navigate("group-detail", id)} />
+  } else if (view === "structure") {
+    content = <StructurePage navigate={navigate} />
+  } else if (view === "community-create") {
     content = (
-      <MemberProfile
-        memberId={entityId ?? ""}
+      <CreateCommunityPage
         navigate={navigate}
         notify={notify}
+        onCreated={(membership) => {
+          // Registering the community both adds it to the switcher and makes it the active tenant.
+          dispatch({ type: "communities/created", value: membership })
+        }}
       />
     )
-  } else if (view === "groups") {
-    content = (
-      <GroupsPage
-        onViewGroup={(id) => navigate("group-detail", id)}
-        notify={notify}
-      />
-    )
-  } else if (view === "group-detail") {
-    content = (
-      <GroupDetailsPage
-        groupId={entityId ?? ""}
-        notify={notify}
-      />
-    )
-  } else if (view === "branches") {
-    content = (
-      <BranchesPage
-        onViewBranch={(id) => navigate("branch-detail", id)}
-        notify={notify}
-      />
-    )
-  } else if (view === "branch-detail") {
-    content = (
-      <BranchDetailsPage
-        branchId={entityId ?? ""}
-        onViewGroup={(id) => navigate("group-detail", id)}
-      />
-    )
-  } else if (view === "structure") {
-    content = <StructurePage />
   } else if (view === "modules") {
     content = <ModulesPage enabled={enabledModules} toggle={toggleModule} />
   } else if (view === "contributions") {
     content = <ContributionsOverviewPage view="contributions" navigate={navigate} notify={notify} />
   } else if (view === "contribution-detail") {
-    content = <ContributionDetailPage view="contribution-detail" id={entityId ?? ""} navigate={navigate} notify={notify} />
+    content = (
+      <ContributionDetailPage view="contribution-detail" id={entityId ?? ""} navigate={navigate} notify={notify} />
+    )
   } else if (view === "contribution-create") {
     content = <ContributionCreatePage view="contribution-create" navigate={navigate} notify={notify} />
   } else if (view === "dues") {
@@ -254,13 +246,15 @@ export default function FinSquareApp() {
     content = (
       <WalletPage navigate={navigate} notify={notify} id={entityId}>
         {(ctx) =>
-          view === "wallet"
-            ? <WalletOverview ctx={ctx} />
-            : view === "wallets"
-              ? <WalletList ctx={ctx} />
-              : view === "wallet-transactions"
-                  ? <TransactionTable ctx={ctx} />
-                  : <AccessControls ctx={ctx} />
+          view === "wallet" ? (
+            <WalletOverview ctx={ctx} />
+          ) : view === "wallets" ? (
+            <WalletList ctx={ctx} />
+          ) : view === "wallet-transactions" ? (
+            <TransactionTable ctx={ctx} />
+          ) : (
+            <AccessControls ctx={ctx} />
+          )
         }
       </WalletPage>
     )
@@ -293,13 +287,7 @@ export default function FinSquareApp() {
   } else if (view === "member-applications") {
     content = <MemberApplicationsPage navigate={navigate} notify={notify} />
   } else if (view === "member-application-detail") {
-    content = (
-      <MemberApplicationDetailPage
-        applicationId={entityId ?? ""}
-        navigate={navigate}
-        notify={notify}
-      />
-    )
+    content = <MemberApplicationDetailPage applicationId={entityId ?? ""} navigate={navigate} notify={notify} />
   } else if (view === "member-application-forms") {
     content = <MemberApplicationFormsPage notify={notify} />
   } else if (view === "administrators") {
@@ -311,11 +299,7 @@ export default function FinSquareApp() {
       />
     )
   } else if (view === "administrator-detail") {
-    content = (
-      <AdministratorDetailsPage
-        administratorId={entityId ?? ""}
-      />
-    )
+    content = <AdministratorDetailsPage administratorId={entityId ?? ""} />
   } else if (view === "roles" || view === "role-detail") {
     content = (
       <RolesPage
@@ -334,11 +318,7 @@ export default function FinSquareApp() {
             index,
             value: status,
           })
-          notify(
-            status === "Approved"
-              ? "Document approved"
-              : "Document ready to replace",
-          )
+          notify(status === "Approved" ? "Document approved" : "Document ready to replace")
         }}
       />
     )
@@ -385,9 +365,7 @@ export default function FinSquareApp() {
         organization={state.organization}
         setLogo={(logo) => dispatch({ type: "organization/updated", value: { logo } })}
         accent={state.accent}
-        setAccent={(accent) =>
-          dispatch({ type: "preferences/accent-changed", value: accent })
-        }
+        setAccent={(accent) => dispatch({ type: "preferences/accent-changed", value: accent })}
         notify={notify}
         onSignOut={handleSignOut}
       />
@@ -433,11 +411,7 @@ export default function FinSquareApp() {
       />
       <div className="app-main">
         <header className="mobile-header">
-          <IconButton
-            icon={Menu}
-            label="Open menu"
-            onClick={() => setSidebarOpen(true)}
-          />
+          <IconButton icon={Menu} label="Open menu" onClick={() => setSidebarOpen(true)} />
           <Brand />
           <div className="avatar">{identityInitials}</div>
         </header>
@@ -445,8 +419,10 @@ export default function FinSquareApp() {
           <EnvironmentBanner environment={state.environment} onAction={() => navigate("corporate")} />
           <Breadcrumbs view={view} navigate={navigate} />
           <Suspense fallback={<LoadingState label="Loading page…" />}>
-            {settingsTabFor(view) && canAccessView(view, enabledModules, can) && <SettingsTabs view={view} navigate={navigate} enabled={enabledModules} can={can} />}
-          {content}
+            {settingsTabFor(view) && canAccessView(view, enabledModules, can) && (
+              <SettingsTabs view={view} navigate={navigate} enabled={enabledModules} can={can} />
+            )}
+            {content}
           </Suspense>
         </main>
       </div>

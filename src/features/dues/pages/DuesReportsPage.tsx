@@ -4,7 +4,7 @@ import { SectionHeader } from "@/components/ui"
 import { Button, ExportButtons, PagedTable, Panel } from "../components/DuesUi"
 import { useDues } from "../hooks/useDues"
 import { useParticipantRoster } from "../hooks/useParticipantRoster"
-import { DUES_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import {
   collectionHistory,
   manualPaymentRows,
@@ -69,7 +69,8 @@ const EMPTY_FILTERS: DuesReportFilters = { method: "All", status: "All" }
  * form uses, which is why it needs no group repository of its own.
  */
 export default function DuesReportsPage({ embedded }: { embedded?: boolean }) {
-  const resource = useDues(DUES_ORG_ID)
+  const organizationId = useOrganizationId()
+  const resource = useDues(organizationId)
   if (resource.error) return <ErrorState message={resource.error} retry={resource.retry} />
   if (!resource.data) return <LoadingState label="Loading dues reports…" />
   return <ReportsBody ctx={resource} dataset={resource.data} embedded={embedded} />

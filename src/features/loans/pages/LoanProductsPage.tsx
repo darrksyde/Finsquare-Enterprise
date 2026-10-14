@@ -5,14 +5,15 @@ import { publishedVersion } from "@/features/forms/domain/forms"
 import { ProductWizard } from "../components/ProductWizard"
 import { QuestionLibraryManager } from "@/features/forms/components/QuestionLibrary"
 import { useQuestionLibrary } from "@/features/forms/hooks/useQuestionLibrary"
-import { FORMS_ORG_ID } from "@/features/forms/constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { LoanPage, PagedTable, Panel, StatusBadge, Tabs, money, type LoanPageProps } from "../components/LoanUi"
 import type { LoanProduct } from "../types/loan.types"
 
 export function LoanProductsPage(props: LoanPageProps) {
+  const organizationId = useOrganizationId()
   const [tab, setTab] = useState<"products" | "forms" | "library">("products")
   const [editing, setEditing] = useState<{ product: LoanProduct | null; step: number } | null>(props.id === "new" ? { product: null, step: 0 } : null)
-  const questionLibrary = useQuestionLibrary(FORMS_ORG_ID)
+  const questionLibrary = useQuestionLibrary(organizationId)
   return (
     <LoanPage {...props} width={props.id === "new" || editing ? "narrow" : undefined}>
       {(ctx) => {

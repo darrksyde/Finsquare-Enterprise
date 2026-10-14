@@ -1,5 +1,5 @@
 import { membersMock } from "@/features/members/mocks/members.mock"
-import { CONTRIBUTION_ORG_ID } from "../constants"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { generatePeriods, addDays, parseISODate, round2, toISODate } from "../domain/calculations"
 import { paymentMethodsFor, slugify } from "../domain/contribution.rules"
 import type {
@@ -290,7 +290,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
   for (const seed of SEEDS) {
     const contribution: Contribution = {
       id: seed.id,
-      organizationId: CONTRIBUTION_ORG_ID,
+      organizationId: SEED_ORGANIZATION_ID,
       name: seed.name,
       description: seed.description,
       type: seed.type,
@@ -328,7 +328,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
     for (const memberId of seed.memberIds) {
       const participant: ContributionParticipant = {
         id: `${seed.id}:${memberId}`,
-        organizationId: CONTRIBUTION_ORG_ID,
+        organizationId: SEED_ORGANIZATION_ID,
         contributionId: seed.id,
         memberId,
         memberName: memberName(memberId),
@@ -360,7 +360,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
         txSeq += 1
         transactions.push({
           id: `${seed.id}-tx-${txSeq}`,
-          organizationId: CONTRIBUTION_ORG_ID,
+          organizationId: SEED_ORGANIZATION_ID,
           reference: `CTR-${String(10_000 + txSeq)}`,
           contributionId: seed.id,
           participantId: participant.id,
@@ -385,7 +385,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
       for (const external of EXTERNAL_CONTRIBUTORS) {
         const participant: ContributionParticipant = {
           id: `${seed.id}:${external.id}`,
-          organizationId: CONTRIBUTION_ORG_ID,
+          organizationId: SEED_ORGANIZATION_ID,
           contributionId: seed.id,
           memberName: external.name,
           isExternal: true,
@@ -402,7 +402,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
         txSeq += 1
         transactions.push({
           id: `${seed.id}-tx-${txSeq}`,
-          organizationId: CONTRIBUTION_ORG_ID,
+          organizationId: SEED_ORGANIZATION_ID,
           reference: `CTR-${String(10_000 + txSeq)}`,
           contributionId: seed.id,
           participantId: participant.id,
@@ -433,7 +433,7 @@ export function buildContributionDataset(options: BuildOptions = {}): Contributi
       const requestedAt = daysAgo(seedWithdrawal.daysAgo)
       withdrawals.push({
         id: `${seed.id}-wd-${wdSeq}`,
-        organizationId: CONTRIBUTION_ORG_ID,
+        organizationId: SEED_ORGANIZATION_ID,
         reference: `WDR-${String(5_000 + wdSeq)}`,
         contributionId: seed.id,
         participantId: participant?.id,

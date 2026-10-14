@@ -2,16 +2,22 @@ import { useState } from "react"
 import { FormRenderer } from "@/features/forms/components/FormRenderer"
 import { publishedVersion } from "@/features/forms/domain/forms"
 import { LoadingState } from "@/components/feedback/AsyncState"
-import { MEMBER_ORG_ID } from "../constants"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { useMemberApplications } from "../hooks/useMemberApplications"
 import { applicationLinkLive } from "../domain/member-application.rules"
 
 /**
  * The link anyone can open — no FinSquare account needed. It answers only while the form is
  * published and the administrator has left the link switched on.
+ *
+ * The link carries no session, so the tenant cannot come from the active community: it belongs to the
+ * organisation that published the form. Resolving it from the slug is the backend's job, and until
+ * then the link addresses the seeded organisation, which is where the published forms live.
  */
+const PUBLIC_LINK_ORG_ID = SEED_ORGANIZATION_ID
+
 export function PublicMemberApplicationPage({ slug }: { slug: string }) {
-  const { data, service } = useMemberApplications(MEMBER_ORG_ID)
+  const { data, service } = useMemberApplications(PUBLIC_LINK_ORG_ID)
   const [reference, setReference] = useState("")
   const [joined, setJoined] = useState(false)
 
@@ -69,7 +75,7 @@ export function PublicMemberApplicationPage({ slug }: { slug: string }) {
             : "Thank you. An administrator will review your application and contact you."
         }
         onSubmit={async (values) => {
-          const application = await service.submit(MEMBER_ORG_ID, { form, version, values, source: "Public link" })
+          const application = await service.submit(PUBLIC_LINK_ORG_ID, { form, version, values, source: "Public link" })
           setJoined(application.status === "Approved")
           setReference(application.reference)
         }}

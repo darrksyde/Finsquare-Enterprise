@@ -77,10 +77,13 @@ The platform is **configurable**. Different organizations may have different mod
 
 Do not assume every organization uses every feature.
 
-The organization is the primary tenant.
+The organization is the primary tenant. In the interface it is called a **community**, and one
+administrator can belong to several with a different role in each — the sidebar switcher moves between
+them, and the whole workspace (data, modules, branding, permissions) follows the active one. See
+`docs/communities.md`.
 
 ```text
-Organization
+Organization (community) — the tenant
 ├── Members
 ├── Groups
 ├── Branches
@@ -91,6 +94,9 @@ Organization
 ├── Transactions
 └── Reports
 ```
+
+Never pin a tenant with a constant: read it from `useOrganizationId()`, or from the membership when the
+question is what the signed-in administrator may do.
 
 ## 2. Core Development Principles
 
@@ -817,14 +823,15 @@ Before considering a feature complete, verify:
 
 ## 25. Authentication
 
-`app.tsx` renders the **login gate** before the shell, in this order: the public links (`/apply/`, `/join/`, `/contribute/`) first, so an external applicant or contributor never needs a session; then the login page while there is no session; then the onboarding flow while `onboardingCompleted` is false. Login and onboarding are **not** `View`s — they have no route, no breadcrumb and never render the sidebar.
+`app.tsx` renders the **login gate** before the shell, in this order: the public links (`/apply/`, `/join/`, `/contribute/`) first, so an external applicant or contributor never needs a session; then the login page while there is no session; then the onboarding flow while the active community's `onboardingCompleted` is false. Login and onboarding are **not** `View`s — they have no route, no breadcrumb and never render the sidebar.
 
 - **Sign up is the onboarding flow.** There is no second account form: the login page's switch starts onboarding, and `onboarding/completed` sets the session from the administrator that onboarding collected. One screen creates the administrator account.
-- **The session is session-scoped.** It lives in `WorkspaceProvider` and is deliberately **not** persisted, so reloading returns to the login page. Logging out clears the session only — the organisation, modules, branding and completed setup all survive, so logging back in does not repeat setup.
+- **The session is session-scoped.** It lives in `WorkspaceProvider` and is deliberately **not** persisted, so reloading returns to the login page. Logging out clears the session only — the communities, their modules, branding and completed setup all survive, so logging back in does not repeat setup.
+- **Signing in loads your communities.** The memberships the backend reports are folded in with `communities/synced`; they are what fill the switcher and fix the role you hold in each. Never assume there is one.
 - **Log out** is in the sidebar's administrator block (a small menu) and in the Settings header.
 - The mock accepts any well-formed email and password, because there is no account store to check them against. `ApiAuthRepository` is the real boundary: the backend owns credentials, token issue and session lifetime. Never treat the frontend session as a security boundary.
 
-See `docs/authentication.md` and `docs/decisions/013-login-gate-and-session.md`.
+See `docs/authentication.md`, `docs/communities.md` and `docs/decisions/013-login-gate-and-session.md`.
 
 ## Final Rule
 

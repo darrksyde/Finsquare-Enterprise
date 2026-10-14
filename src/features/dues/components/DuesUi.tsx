@@ -3,7 +3,7 @@ import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import { ActionMenu, Badge, Button, Disclosure } from "@/components/ui"
 import type { View } from "@/types"
 import { useDues } from "../hooks/useDues"
-import { DUES_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { frequencyLabel } from "../domain/schedule"
 import type {
   DuesLienState,
@@ -48,7 +48,8 @@ export function DuesPage({
 }: DuesPageProps & {
   children: (ctx: DuesCtx) => ReactNode
 }) {
-  const resource = useDues(DUES_ORG_ID)
+  const organizationId = useOrganizationId()
+  const resource = useDues(organizationId)
   if (resource.error) return <ErrorState message={resource.error} retry={resource.retry} />
   if (!resource.data) return <LoadingState label="Loading dues…" />
   const { data, ...rest } = resource

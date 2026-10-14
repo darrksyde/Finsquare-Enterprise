@@ -3,7 +3,6 @@ import { ActionModal, ChargeStatusBadge, NumField, TextArea } from "./DuesUi"
 import { DUES_PAYMENT_METHODS, DUES_PAYMENT_METHOD_LABELS } from "../types/dues.types"
 import { isAwaitingRecovery, outstandingOf } from "../domain/dues.rules"
 import { fmtDate, money } from "@/features/loans/components/LoanUi"
-import { DUES_ORG_ID } from "../constants"
 import type { DuesCtx } from "./DuesUi"
 import type { DuesLienRules, DuesPaymentMethod, DuesPlan } from "../types/dues.types"
 interface ModalProps {
@@ -60,7 +59,7 @@ export function RecordDuesPaymentModal({
     if (!amount || amount <= 0) return setError("Enter an amount greater than zero.")
     try {
       const transaction = await ctx.service.recordPayment(
-        DUES_ORG_ID,
+        ctx.organizationId,
         {
           duesPlanId: plan.id,
           participantId,
@@ -171,7 +170,7 @@ export function RecoveryConfirmModal({
   const members = new Set(recoverable.map((charge) => charge.memberId)).size
   const submit = async () => {
     try {
-      const result = await ctx.service.runLienRecovery(DUES_ORG_ID, ctx.ctx, {
+      const result = await ctx.service.runLienRecovery(ctx.organizationId, ctx.ctx, {
         planId: plan.id,
         memberId,
       })
@@ -231,7 +230,7 @@ export function LienRulesModal({ ctx, plan, onClose, notify }: ModalProps) {
   const [error, setError] = useState<string | null>(null)
   const submit = async () => {
     try {
-      await ctx.service.updateLienRules(DUES_ORG_ID, plan.id, rules)
+      await ctx.service.updateLienRules(ctx.organizationId, plan.id, rules)
       notify(`Lien rules updated for ${plan.name}`)
       ctx.retry()
     } catch (reason) {

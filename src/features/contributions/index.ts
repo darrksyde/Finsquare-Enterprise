@@ -5,7 +5,6 @@ export { default as ContributionReportsPage } from "./pages/ContributionReportsP
 export { default as PublicContributionPage } from "./pages/PublicContributionPage"
 
 export { ContributionPage } from "./components/ContributionUi"
-export { CONTRIBUTION_ORG_ID } from "./constants"
 export type { ContributionPageProps, ContributionCtx } from "./components/ContributionUi"
 
 export { contributionsService } from "./services/contributions.service"

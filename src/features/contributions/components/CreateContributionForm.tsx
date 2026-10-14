@@ -9,7 +9,7 @@ import { useWallet } from "@/features/wallet/hooks/useWallet"
 import { money } from "@/features/loans/components/LoanUi"
 import { round2, toISODate } from "../domain/calculations"
 import { COMMISSION_MODEL_OPTIONS, PAYMENT_METHOD_CATALOG, recipientLabel } from "../domain/contribution.rules"
-import { CONTRIBUTION_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { createContributionSchema, firstError } from "../schemas/contribution.schema"
 import { Panel } from "./ContributionUi"
 import type { ContributionCtx } from "./ContributionUi"
@@ -83,10 +83,11 @@ const initialDraft = (walletEnabled: boolean): CreateContributionInput => ({
  */
 export function CreateContributionForm({ ctx }: { ctx: ContributionCtx }) {
   const { state } = useWorkspace()
+  const organizationId = useOrganizationId()
   const walletEnabled = state.enabledModules.includes("wallet")
   const wallet = useWallet()
-  const { members } = useMembers(CONTRIBUTION_ORG_ID)
-  const groupsResource = useAsyncResource(() => groupsService.getGroups(CONTRIBUTION_ORG_ID), [])
+  const { members } = useMembers(organizationId)
+  const groupsResource = useAsyncResource(() => groupsService.getGroups(organizationId), [organizationId])
 
   const [draft, setDraft] = useState(() => initialDraft(walletEnabled))
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -124,7 +125,7 @@ export function CreateContributionForm({ ctx }: { ctx: ContributionCtx }) {
   const addGroup = async (groupId: string) => {
     const group = (groupsResource.data ?? []).find((item) => item.id === groupId)
     if (!group) return
-    const memberships = await groupsService.getGroupMembers(CONTRIBUTION_ORG_ID, group.id)
+    const memberships = await groupsService.getGroupMembers(organizationId, group.id)
     const ids = memberships.filter((m) => m.status === "active").map((m) => m.memberId)
     setSelectedIds((current) => [...new Set([...current, ...ids])])
     patch({ groupId: group.id, groupName: group.name })
@@ -167,7 +168,7 @@ export function CreateContributionForm({ ctx }: { ctx: ContributionCtx }) {
     setBusy(true)
     try {
       const created = await ctx.service.createContribution(
-        CONTRIBUTION_ORG_ID,
+        organizationId,
         { ...draft, participants: await roster() },
         ctx.ctx,
       )

@@ -107,6 +107,8 @@ export function useDues(organizationId: string) {
     actor,
     ctx,
     mode,
+    /** The tenant this data belongs to, so a mutation can name it without a second hook call. */
+    organizationId,
     environment: state.environment,
     enabledModules: new Set(state.enabledModules),
     today,

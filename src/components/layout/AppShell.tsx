@@ -2,7 +2,6 @@ import { useState } from "react"
 import {
   Bell,
   ChevronDown,
-  ChevronsUpDown,
   MoreHorizontal,
   PanelLeftClose,
 } from "@/icons"
@@ -11,8 +10,8 @@ import type { View } from "@/types"
 import type { Permission } from "@/types"
 import { IconButton } from "@/components/ui"
 import Brand from "@/components/layout/Brand"
-import OrgAvatar from "@/components/layout/OrgAvatar"
 import { useWorkspace } from "@/app/providers/WorkspaceProvider"
+import CommunitySwitcher from "@/features/communities/components/CommunitySwitcher"
 
 export function Sidebar({
   view,
@@ -32,7 +31,9 @@ export function Sidebar({
   onSignOut: () => void
 }) {
   const activeView = parentView(view)
-  const { organization: org, admin, session } = useWorkspace().state
+  const { admin, session, communities, activeCommunityId } = useWorkspace().state
+  const roleName =
+    communities.find((community) => community.id === activeCommunityId)?.roleName ?? "Administrator"
   const [openIds, setOpenIds] = useState<Set<string>>(new Set())
   const [menuOpen, setMenuOpen] = useState(false)
   const identity = session?.name || admin.name || "Admin User"
@@ -59,14 +60,7 @@ export function Sidebar({
             onClick={close}
           />
         </div>
-        <button type="button" className="org-switcher" onClick={() => { setView("organization"); close() }}>
-          <OrgAvatar />
-          <div>
-            <b>{org.name}</b>
-            <small>{org.type}</small>
-          </div>
-          <ChevronsUpDown size={14} />
-        </button>
+        <CommunitySwitcher onNavigate={(target) => { setView(target); close() }} />
         <nav className="nav">
           {navigationSections.map((section) => {
             const visible = section.items.filter(
@@ -129,7 +123,7 @@ export function Sidebar({
             <div className="avatar">{initials}</div>
             <div>
               <b>{identity}</b>
-              <small>Super Admin</small>
+              <small>{roleName}</small>
             </div>
             <button
               type="button"

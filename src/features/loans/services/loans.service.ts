@@ -8,8 +8,9 @@ import {
   deriveLoanState,
   todayISO,
 } from "../domain/calculations"
-import { mockId } from "../mocks/loans.mock"
+import { mockId, createEmptyLoanDataset } from "../mocks/loans.mock"
 import { createMockLoanRepository } from "../repositories/mock-loan.repository"
+import { SEED_ORGANIZATION_ID, isSeedTenant } from "@/lib/tenancy/seed-tenant"
 import type { LoanRepository } from "../repositories/loan.repository"
 import type {
   ApplicationStatus,
@@ -293,5 +294,30 @@ export class LoansService {
 
 const note = (type: string, text: string, by = ACTOR) => ({ id: mockId("n"), at: todayISO(), type, text, by })
 
-export const loansService = new LoansService(createMockLoanRepository())
+/**
+ * One service — and therefore one dataset — per community.
+ *
+ * The tenant is bound when the service is resolved rather than passed to every one of its methods,
+ * because the tenant is ambient: a loan screen always works inside the community the switcher has
+ * active, and a call site that could name a different tenant would be a way to read another
+ * community's loans. The seeded community gets the seeded dataset and every other community starts
+ * with none, so switching shows that community's loans and nothing else.
+ *
+ * A backend takes the tenant from the authenticated session instead.
+ */
+const services = new Map<string, LoansService>()
+
+export function loansServiceFor(organizationId: string): LoansService {
+  let service = services.get(organizationId)
+  if (!service) {
+    service = new LoansService(
+      createMockLoanRepository(isSeedTenant(organizationId) ? undefined : createEmptyLoanDataset()),
+    )
+    services.set(organizationId, service)
+  }
+  return service
+}
+
+/** The seeded community's service, for the screens that run without a session (the public link). */
+export const loansService = loansServiceFor(SEED_ORGANIZATION_ID)
 export type { LoanDataset }

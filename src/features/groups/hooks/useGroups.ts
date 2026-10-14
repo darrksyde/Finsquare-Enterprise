@@ -12,6 +12,10 @@ export function useGroups(organizationId: string) {
     () => groupsService.getGroups(organizationId),
     [organizationId],
   )
+  const typesResource = useAsyncResource(
+    () => groupsService.getGroupTypes(organizationId),
+    [organizationId],
+  )
 
   const createGroup = useCallback(
     async (input: CreateGroupInput) => {
@@ -50,6 +54,7 @@ export function useGroups(organizationId: string) {
   return {
     ...resource,
     groups: resource.data ?? [],
+    groupTypes: typesResource.data ?? [],
     createGroup,
     updateGroup,
     archiveGroup,

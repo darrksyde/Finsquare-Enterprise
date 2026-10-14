@@ -1,7 +1,5 @@
 import { useCallback, useMemo } from "react"
 import { useContributions } from "@/features/contributions/hooks/useContributions"
-import { CONTRIBUTION_ORG_ID } from "@/features/contributions/constants"
-import { DUES_ORG_ID } from "@/features/dues/constants"
 import { useDues } from "@/features/dues/hooks/useDues"
 import { participantTotals as duesParticipantTotals } from "@/features/dues/domain/dues.rules"
 import { toISODate } from "@/features/contributions/domain/calculations"
@@ -9,6 +7,7 @@ import { useLoans } from "@/features/loans/hooks/useLoans"
 import { useWallet } from "@/features/wallet/hooks/useWallet"
 import { memberWalletFor } from "@/features/wallet/domain/wallet.rules"
 import type { WalletCtx } from "@/features/wallet/components/WalletShell"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { memberActivity } from "../domain/member-activity"
 import { memberMoneySummary, memberObligations } from "../domain/member-obligations"
 import { memberPaymentsService, type MemberPaymentInput, type MemberPaymentResult } from "../services/member-payments.service"
@@ -27,8 +26,9 @@ export function useMemberMoney(input: {
   notify: (message: string) => void
 }) {
   const { memberId } = input
-  const contributions = useContributions(CONTRIBUTION_ORG_ID)
-  const dues = useDues(DUES_ORG_ID)
+  const organizationId = useOrganizationId()
+  const contributions = useContributions(organizationId)
+  const dues = useDues(organizationId)
   const loans = useLoans()
   const wallet = useWallet()
   const today = toISODate(new Date())
@@ -147,14 +147,14 @@ export function useMemberMoney(input: {
   const pay = useCallback(
     async (payment: Omit<MemberPaymentInput, "memberId">): Promise<MemberPaymentResult> => {
       const result = await memberPaymentsService.recordPayment(
-        CONTRIBUTION_ORG_ID,
+        organizationId,
         { ...payment, memberId },
         contributions.ctx,
       )
       retry()
       return result
     },
-    [memberId, contributions.ctx, retry],
+    [organizationId, memberId, contributions.ctx, retry],
   )
 
   const duesParticipants = useMemo(

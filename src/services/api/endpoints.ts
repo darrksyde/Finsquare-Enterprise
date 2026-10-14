@@ -3,6 +3,11 @@ export const endpoints = {
     login: "/auth/login",
     logout: "/auth/logout",
   },
+  /** The communities the authenticated administrator belongs to; the tenant comes from the session. */
+  organizations: {
+    list: "/organizations",
+    create: "/organizations",
+  },
   members: {
     list: (organizationId: string) =>
       `/organizations/${organizationId}/members`,

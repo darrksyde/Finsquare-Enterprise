@@ -14,14 +14,16 @@ The UI does not construct backend URLs or consume raw DTOs.
 
 ## Composition root
 
-`src/app/app.tsx` assembles routes, page components, overlays, and the application shell. `WorkspaceProvider` owns only cross-feature organization state. It uses a reducer so transitions are explicit and inspectable.
+`src/app/app.tsx` assembles routes, page components, overlays, and the application shell. `WorkspaceProvider` owns only cross-feature workspace state — the communities, which one is active, and the person signed in — and keeps the pure state logic in `app/providers/workspace-store.ts` so the reducer and the migration are testable without React. It uses a reducer so transitions are explicit and inspectable.
 
 ## State ownership
 
 - **Component state:** open panels, wizard steps, selected tabs, filters.
 - **Feature state:** data loading, errors, mutations, and retry logic in hooks.
-- **Application state:** organization environment, modules, compliance/account readiness, the signed-in session, and user preferences.
+- **Application state:** one slice per community (its profile, branding, modules, corporate account, compliance and the role held in it), which community is active, the signed-in session, and user preferences.
 - **Server state:** repository-backed domain data. The current member repository uses mocks by default.
+
+The **active community is the tenant**. The context value flattens that community's slice onto the names consumers read (`state.organization`, `state.enabledModules`, `state.environment`, …), and `useOrganizationId()` supplies the tenant id to whichever hook loads a screen's data. See `communities.md`.
 
 ## Domain boundaries
 
@@ -53,6 +55,6 @@ Several dense demo pages remain grouped by related feature rather than split int
 
 ## Current state (read this first)
 - Single-page app; all data is mock data behind repositories. See `README.md` for the document map.
-- Cross-feature workspace state (modules, environment, theme, accent, organization profile, onboarding, corporate account, session) lives in `WorkspaceProvider`. Anything else belongs in its feature.
+- Cross-feature workspace state (the communities and the active one, theme, the signed-in session) lives in `WorkspaceProvider`. Everything a community owns — its profile, branding, modules, corporate account, compliance and the role held in it — lives in that community's slice, not beside it. Anything else belongs in its feature.
 - Navigation is a typed `View` union, not route components (see `routing-and-navigation.md`).
 - New feature checklist: domain model → types → zod schema → repository interface + mock → service → hook → UI → view/route → permissions → module/nav config → loading/empty/error states → docs.

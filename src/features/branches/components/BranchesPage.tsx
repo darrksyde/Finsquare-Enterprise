@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { GitBranch, MoreHorizontal, Plus } from "@/icons"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import {
@@ -22,7 +23,6 @@ import { useBranches } from "../hooks/useBranches"
 import { BranchForm } from "./BranchForm"
 import { BranchStatusBadge } from "./BranchStatusBadge"
 
-const organizationId = "org-lagos-farmers"
 const pageSize = 6
 
 function BranchTree({
@@ -74,6 +74,7 @@ export function BranchesPage({
   onViewBranch: (id: string) => void
   notify: (message: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const {
     branches,
     status,

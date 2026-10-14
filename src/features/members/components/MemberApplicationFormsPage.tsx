@@ -7,12 +7,11 @@ import { FormBuilder } from "@/features/forms/components/FormBuilder"
 import { QuestionLibraryManager } from "@/features/forms/components/QuestionLibrary"
 import { publishedVersion, workingVersion } from "@/features/forms/domain/forms"
 import { useQuestionLibrary } from "@/features/forms/hooks/useQuestionLibrary"
-import { FORMS_ORG_ID } from "@/features/forms/constants"
 import { ActionModal, PagedTable, Panel, Tabs, fmtDate } from "@/features/loans/components/LoanUi"
 import { printDocument } from "@/features/wallet/domain/export"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import { useGroups } from "@/features/groups/hooks/useGroups"
-import { MEMBER_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { useMemberApplications } from "../hooks/useMemberApplications"
 import { applicationLinkLive } from "../domain/member-application.rules"
 import { formExportHtml } from "../domain/form-export"
@@ -31,9 +30,10 @@ const linkFor = (slug: string) => `${window.location.origin}/join/${slug}`
  * steps, questions, question library and preview behave exactly as they do for a loan application.
  */
 export function MemberApplicationFormsPage({ notify }: { notify: (message: string) => void }) {
-  const { data, status, error, retry, service } = useMemberApplications(MEMBER_ORG_ID)
-  const questionLibrary = useQuestionLibrary(FORMS_ORG_ID)
-  const { groups } = useGroups(MEMBER_ORG_ID)
+  const organizationId = useOrganizationId()
+  const { data, status, error, retry, service } = useMemberApplications(organizationId)
+  const questionLibrary = useQuestionLibrary(organizationId)
+  const { groups } = useGroups(organizationId)
   const { can } = useAuthorization()
   const [tab, setTab] = useState<"forms" | "library">("forms")
   const [editing, setEditing] = useState<Editing | null>(null)
@@ -58,7 +58,7 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
       defaultGroupId={publishingForm.groupId}
       onClose={() => setPublishing(null)}
       onPublish={async (joinMode, groupId) => {
-        await service.publishForm(MEMBER_ORG_ID, publishingForm, publishingVersion, { joinMode, groupId, linkEnabled: true })
+        await service.publishForm(organizationId, publishingForm, publishingVersion, { joinMode, groupId, linkEnabled: true })
         setPublishing(null)
         setEditing(null)
         notify("Form published — the application link is live")
@@ -87,7 +87,7 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
           library={library}
           onChange={(version) => setEditing((current) => (current ? { ...current, version } : current))}
           onSave={async () => {
-            const saved = await service.saveDraft(MEMBER_ORG_ID, editing.form, editing.version)
+            const saved = await service.saveDraft(organizationId, editing.form, editing.version)
             setEditing({ form: saved, version: editing.version })
             notify("Draft saved")
           }}
@@ -168,7 +168,7 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
                         <Button
                           variant="ghost"
                           onClick={async () => {
-                            await service.setLinkEnabled(MEMBER_ORG_ID, form, !form.linkEnabled)
+                            await service.setLinkEnabled(organizationId, form, !form.linkEnabled)
                             notify(form.linkEnabled ? "Application link disabled" : "Application link enabled")
                           }}
                         >
@@ -179,7 +179,7 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
                         <Button
                           variant="ghost"
                           onClick={async () => {
-                            await service.archiveForm(MEMBER_ORG_ID, form)
+                            await service.archiveForm(organizationId, form)
                             notify(`${form.name} archived`)
                           }}
                         >
@@ -201,7 +201,7 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
           defaultGroupId={defaultGroupId}
           onCreate={async (name, groupId) => {
             const form = service.createForm(name, groupId)
-            await service.saveForm(MEMBER_ORG_ID, form)
+            await service.saveForm(organizationId, form)
             setCreating(false)
             setEditing({ form, version: form.versions[0] })
             notify(`${form.name} created — build the form, then publish it`)
@@ -216,9 +216,10 @@ export function MemberApplicationFormsPage({ notify }: { notify: (message: strin
 }
 
 function CreateFormModal({ defaultGroupId, onCreate, onClose }: { defaultGroupId: string; onCreate: (name: string, groupId: string) => Promise<void>; onClose: () => void }) {
+  const organizationId = useOrganizationId()
   const [name, setName] = useState("")
   const [groupId, setGroupId] = useState(defaultGroupId)
-  const { groups } = useGroups(MEMBER_ORG_ID)
+  const { groups } = useGroups(organizationId)
   const active = groups.filter((group) => group.status === "active")
   const valid = memberApplicationFormSchema.safeParse({ name, groupId }).success
   return (

@@ -5,7 +5,7 @@ import { useBranches } from "@/features/branches/hooks/useBranches"
 import { useGroups } from "@/features/groups/hooks/useGroups"
 import { memberSchema } from "../schemas/member.schema"
 import { useCreateMember } from "../hooks/useCreateMember"
-import { MEMBER_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import type { Member } from "@/types"
 
 const GENDERS = ["Prefer not to say", "Female", "Male", "Other"]
@@ -60,9 +60,10 @@ function ChooserStep({ onClose, onManual, onUseForm }: { onClose: () => void; on
 }
 
 function ManualStep({ onClose, notify, onBack }: { onClose: () => void; notify: (message: string) => void; onBack: () => void }) {
-  const { create, busy, error } = useCreateMember(MEMBER_ORG_ID)
-  const { branches } = useBranches(MEMBER_ORG_ID)
-  const { groups } = useGroups(MEMBER_ORG_ID)
+  const organizationId = useOrganizationId()
+  const { create, busy, error } = useCreateMember(organizationId)
+  const { branches } = useBranches(organizationId)
+  const { groups } = useGroups(organizationId)
   const activeBranches = branches.filter((branch) => branch.status === "active")
   const activeGroups = groups.filter((group) => group.status === "active")
 

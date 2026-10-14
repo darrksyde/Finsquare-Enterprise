@@ -217,4 +217,28 @@ export function createLoanDataset(): LoanDataset {
   return { products: productsMock.map((p) => ({ ...p })), applications, loans, repayments, guarantorRequests, disbursements, recoveryCases, forms, settings, borrowers: borrowersMock, guarantors, responses: createResponsesMock(applications, forms, guarantorRequests) }
 }
 
+/**
+ * The same dataset with nothing recorded in it, for a community that is not the seeded one.
+ *
+ * The recovery settings are configuration rather than records, so a new community starts with the
+ * defaults the seeded one uses instead of nothing at all.
+ */
+export function createEmptyLoanDataset(): LoanDataset {
+  const settings = createLoanDataset().settings
+  return {
+    products: [],
+    applications: [],
+    loans: [],
+    repayments: [],
+    guarantorRequests: [],
+    disbursements: [],
+    recoveryCases: [],
+    forms: [],
+    responses: [],
+    borrowers: [],
+    guarantors: [],
+    settings,
+  }
+}
+
 export { addDays, uid as mockId }

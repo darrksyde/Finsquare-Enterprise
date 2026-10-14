@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { getUserErrorMessage } from "@/lib/errors/get-user-message"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { membersService } from "../services/members.service"
-import { MEMBER_ORG_ID } from "../constants"
 import type { AsyncStatus, Member } from "@/types"
 
 /**
@@ -13,6 +13,7 @@ import type { AsyncStatus, Member } from "@/types"
  * new member's name.
  */
 export function useMember(memberId: string) {
+  const organizationId = useOrganizationId()
   const [loaded, setLoaded] = useState<{ id: string; member: Member | null } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
@@ -22,7 +23,7 @@ export function useMember(memberId: string) {
   useEffect(() => {
     let active = true
     membersService
-      .getById(MEMBER_ORG_ID, memberId)
+      .getById(organizationId, memberId)
       .then((result) => {
         if (!active) return
         setLoaded({ id: memberId, member: result })
@@ -34,7 +35,7 @@ export function useMember(memberId: string) {
     return () => {
       active = false
     }
-  }, [memberId, version])
+  }, [organizationId, memberId, version])
 
   const retry = useCallback(() => setVersion((value) => value + 1), [])
   const current = loaded && loaded.id === memberId ? loaded : null

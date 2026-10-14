@@ -20,7 +20,7 @@ import {
   type ImportTarget,
 } from "../domain/member-import"
 import { useImportMembers } from "../hooks/useImportMembers"
-import { MEMBER_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import type { MemberImportResult } from "@/types"
 
 const formatSize = (bytes: number) =>
@@ -37,7 +37,8 @@ export function ImportMembersModal({
   onClose: () => void
   onComplete: (imported: number) => void
 }) {
-  const { run, busy, error: importError } = useImportMembers(MEMBER_ORG_ID)
+  const organizationId = useOrganizationId()
+  const { run, busy, error: importError } = useImportMembers(organizationId)
   const [step, setStep] = useState(0)
   const [file, setFile] = useState<File | null>(null)
   const [table, setTable] = useState<CsvTable | null>(null)

@@ -10,8 +10,8 @@ function upsert<T extends { id: string }>(list: T[], item: T, front = false): T[
       : [...list, item]
 }
 
-export function createMockLoanRepository(): LoanRepository {
-  let data: LoanDataset = createLoanDataset()
+export function createMockLoanRepository(initial?: LoanDataset): LoanRepository {
+  let data: LoanDataset = initial ?? createLoanDataset()
   const listeners = new Set<() => void>()
   const commit = async (next: Partial<LoanDataset>) => {
     data = { ...data, ...next }

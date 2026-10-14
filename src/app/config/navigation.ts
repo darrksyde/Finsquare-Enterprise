@@ -124,6 +124,9 @@ const secondaryAccess: Partial<Record<View, { module?: EnterpriseModuleId; permi
   organization: { nav: "settings" },
   compliance: { nav: "settings" },
   corporate: { nav: "settings" },
+  // Starting a community is a platform-level action, not a permission inside one community, so it
+  // carries no module or permission of its own.
+  "community-create": { nav: "overview" },
 }
 
 /** The sidebar item that should appear active for a view. */
@@ -174,6 +177,7 @@ const crumbParents: Partial<Record<View, View>> = {
   "member-applications": "members", "member-application-detail": "member-applications", "member-application-forms": "members",
   administrators: "settings", roles: "settings", modules: "settings", compliance: "settings", corporate: "settings", organization: "settings",
   "administrator-detail": "administrators", "role-detail": "roles",
+  "community-create": "overview",
 }
 
 const crumbLabels: Partial<Record<View, string>> = {
@@ -187,6 +191,7 @@ const crumbLabels: Partial<Record<View, string>> = {
   administrators: "Administrators", "administrator-detail": "Administrator", roles: "Roles & permissions", "role-detail": "Role",
   modules: "Modules", compliance: "Compliance", corporate: "Corporate account & wallet", organization: "Organization details",
   structure: "Structure", workflows: "Workflows", settings: "Settings",
+  "community-create": "Create a community",
 }
 
 export interface Crumb { view: View; label: string }

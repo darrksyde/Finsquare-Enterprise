@@ -4,7 +4,7 @@ import { ActionMenu, Badge, Disclosure } from "@/components/ui"
 import { HandCoins } from "@/icons"
 import type { View } from "@/types"
 import { useContributions } from "../hooks/useContributions"
-import { CONTRIBUTION_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { recipientHoldsFunds, recipientHolderName } from "../domain/contribution.rules"
 import type {
   ContributionForm,
@@ -45,7 +45,8 @@ export function ContributionPage({
   children,
   ...props
 }: ContributionPageProps & { children: (ctx: ContributionCtx) => ReactNode }) {
-  const resource = useContributions(CONTRIBUTION_ORG_ID)
+  const organizationId = useOrganizationId()
+  const resource = useContributions(organizationId)
   if (resource.error) return <ErrorState message={resource.error} retry={resource.retry} />
   if (!resource.data) return <LoadingState label="Loading contributions…" />
 

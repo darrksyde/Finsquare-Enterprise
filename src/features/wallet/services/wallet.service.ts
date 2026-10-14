@@ -1,6 +1,7 @@
 import { walletId } from "../mocks/wallet.mock"
 import { createMockWalletRepository } from "../repositories/mock-wallet.repository"
 import type { WalletRepository } from "../repositories/wallet.repository"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { checkOutflow, requiredApprovals } from "../domain/wallet.rules"
 import type {
   Actor, ApprovalRule, DisbursementItem, RelatedRecords, Wallet, WalletAccess, WalletApproval, WalletAuditLog, WalletDataset,
@@ -386,4 +387,22 @@ export class WalletService {
   }
 }
 
-export const walletService = new WalletService()
+const services = new Map<string, WalletService>()
+
+/**
+ * One service — and therefore one dataset — per community, for the same reason as the loans service:
+ * the tenant is ambient, so it is bound where the service is resolved rather than repeated on every
+ * call. Wallet screens work inside the community the switcher has active, and a call site that could
+ * name another tenant would be a way to spend somebody else's balance.
+ */
+export function walletServiceFor(organizationId: string): WalletService {
+  let service = services.get(organizationId)
+  if (!service) {
+    service = new WalletService(createMockWalletRepository(organizationId))
+    services.set(organizationId, service)
+  }
+  return service
+}
+
+/** The seeded community's service, for the screens that run without a session. */
+export const walletService = walletServiceFor(SEED_ORGANIZATION_ID)

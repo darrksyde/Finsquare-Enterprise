@@ -1,4 +1,5 @@
 import { membersMock } from "@/features/members/mocks/members.mock"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { todayISO } from "@/features/loans/domain/calculations"
 import { DEFAULT_SMS_RATE } from "../constants"
 import { smsSegments } from "../domain/messaging"
@@ -14,7 +15,7 @@ import type {
   SmsAccount,
 } from "../types/message.types"
 
-const organizationId = "org-lagos-farmers"
+const organizationId = SEED_ORGANIZATION_ID
 
 const daysAgo = (days: number, hour = 9) => {
   const date = new Date()

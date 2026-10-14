@@ -4,24 +4,44 @@ import type {
   Group,
   GroupMemberRole,
   GroupMembership,
+  GroupType,
   UpdateGroupInput,
 } from "@/types"
-import { groupMembershipsMock, groupsMock } from "../mocks/groups.mock"
+import { createTenantStore } from "@/lib/tenancy/tenant-store"
+import { isSeedTenant } from "@/lib/tenancy/seed-tenant"
+import { groupMembershipsMock, groupTypesMock, groupsMock } from "../mocks/groups.mock"
 import type { GroupRepository } from "./group.repository"
 
 export class MockGroupRepository implements GroupRepository {
-  private groups = structuredClone(groupsMock)
-  private memberships = structuredClone(groupMembershipsMock)
+  /** One entry per community: the seeded community has its groups, every other one starts empty. */
+  private groups = createTenantStore<Group[]>({
+    seed: () => structuredClone(groupsMock),
+    empty: () => [],
+  })
+  private memberships = createTenantStore<GroupMembership[]>({
+    seed: () => structuredClone(groupMembershipsMock),
+    empty: () => [],
+  })
 
   async getGroups(organizationId: string) {
     return structuredClone(
-      this.groups.filter((group) => group.organizationId === organizationId),
+      this.groups.of(organizationId).filter((group) => group.organizationId === organizationId),
+    )
+  }
+
+  /**
+   * Group types are configuration rather than records: the defaults are the platform's, and every
+   * community has them, which is why they are stamped with the tenant that asked.
+   */
+  async getGroupTypes(organizationId: string): Promise<GroupType[]> {
+    return structuredClone(
+      groupTypesMock.map((type) => ({ ...type, organizationId })),
     )
   }
 
   async getGroup(organizationId: string, id: string) {
     return structuredClone(
-      this.groups.find(
+      this.groups.of(organizationId).find(
         (group) => group.organizationId === organizationId && group.id === id,
       ) ?? null,
     )
@@ -29,8 +49,8 @@ export class MockGroupRepository implements GroupRepository {
 
   async createGroup(organizationId: string, input: CreateGroupInput) {
     this.assertUniqueCode(organizationId, input.code)
-    this.assertCoordinator(input.coordinatorMemberId)
-    this.assertCoordinator(input.assistantCoordinatorMemberId)
+    this.assertCoordinator(organizationId, input.coordinatorMemberId)
+    this.assertCoordinator(organizationId, input.assistantCoordinatorMemberId)
     const now = new Date().toISOString()
     const group: Group = {
       ...input,
@@ -40,7 +60,7 @@ export class MockGroupRepository implements GroupRepository {
       createdAt: now,
       updatedAt: now,
     }
-    this.groups.unshift(group)
+    this.groups.of(organizationId).unshift(group)
     if (input.coordinatorMemberId) {
       await this.addGroupMember(
         organizationId,
@@ -69,8 +89,8 @@ export class MockGroupRepository implements GroupRepository {
     if (input.code !== undefined && input.code !== group.code) {
       this.assertUniqueCode(organizationId, input.code)
     }
-    this.assertCoordinator(input.coordinatorMemberId)
-    this.assertCoordinator(input.assistantCoordinatorMemberId)
+    this.assertCoordinator(organizationId, input.coordinatorMemberId)
+    this.assertCoordinator(organizationId, input.assistantCoordinatorMemberId)
     Object.assign(group, input, { updatedAt: new Date().toISOString() })
     if (input.coordinatorMemberId) {
       await this.addGroupMember(
@@ -93,12 +113,12 @@ export class MockGroupRepository implements GroupRepository {
 
   async deleteGroup(organizationId: string, id: string) {
     this.requireGroup(organizationId, id)
-    if (this.memberships.some((membership) => membership.groupId === id)) {
+    if (this.memberships.of(organizationId).some((membership) => membership.groupId === id)) {
       throw new Error(
         "This group has membership history and should be archived instead.",
       )
     }
-    this.groups = this.groups.filter((group) => group.id !== id)
+    this.groups.set(organizationId, this.groups.of(organizationId).filter((group) => group.id !== id))
   }
 
   async archiveGroup(organizationId: string, id: string) {
@@ -112,7 +132,7 @@ export class MockGroupRepository implements GroupRepository {
   async getGroupMembers(organizationId: string, groupId: string) {
     this.requireGroup(organizationId, groupId)
     return structuredClone(
-      this.memberships.filter(
+      this.memberships.of(organizationId).filter(
         (membership) =>
           membership.organizationId === organizationId &&
           membership.groupId === groupId &&
@@ -128,12 +148,12 @@ export class MockGroupRepository implements GroupRepository {
     role: GroupMemberRole = "member",
   ) {
     const group = this.requireGroup(organizationId, groupId)
-    if (!membersMock.some((member) => member.id === memberId)) {
+    if (isSeedTenant(organizationId) && !membersMock.some((member) => member.id === memberId)) {
       throw new Error(
         "The selected member does not belong to this organization.",
       )
     }
-    const existing = this.memberships.find(
+    const existing = this.memberships.of(organizationId).find(
       (membership) =>
         membership.groupId === groupId && membership.memberId === memberId,
     )
@@ -152,7 +172,7 @@ export class MockGroupRepository implements GroupRepository {
       status: "active",
       joinedAt: new Date().toISOString(),
     }
-    this.memberships.push(membership)
+    this.memberships.of(organizationId).push(membership)
     group.memberCount += 1
     return structuredClone(membership)
   }
@@ -163,7 +183,7 @@ export class MockGroupRepository implements GroupRepository {
     memberId: string,
   ) {
     const group = this.requireGroup(organizationId, groupId)
-    const membership = this.memberships.find(
+    const membership = this.memberships.of(organizationId).find(
       (item) =>
         item.organizationId === organizationId &&
         item.groupId === groupId &&
@@ -189,7 +209,7 @@ export class MockGroupRepository implements GroupRepository {
     role: GroupMemberRole,
   ) {
     const group = this.requireGroup(organizationId, groupId)
-    const membership = this.memberships.find(
+    const membership = this.memberships.of(organizationId).find(
       (item) =>
         item.organizationId === organizationId &&
         item.groupId === groupId &&
@@ -198,7 +218,7 @@ export class MockGroupRepository implements GroupRepository {
     )
     if (!membership) throw new Error("Group membership not found.")
     if (role === "coordinator") {
-      this.memberships
+      this.memberships.of(organizationId)
         .filter(
           (item) =>
             item.groupId === groupId &&
@@ -222,7 +242,7 @@ export class MockGroupRepository implements GroupRepository {
   }
 
   private requireGroup(organizationId: string, id: string) {
-    const group = this.groups.find(
+    const group = this.groups.of(organizationId).find(
       (item) => item.organizationId === organizationId && item.id === id,
     )
     if (!group) throw new Error("Group not found.")
@@ -232,7 +252,7 @@ export class MockGroupRepository implements GroupRepository {
   private assertUniqueCode(organizationId: string, code?: string) {
     if (
       code &&
-      this.groups.some(
+      this.groups.of(organizationId).some(
         (group) =>
           group.organizationId === organizationId &&
           group.code?.toLowerCase() === code.toLowerCase(),
@@ -242,8 +262,10 @@ export class MockGroupRepository implements GroupRepository {
     }
   }
 
-  private assertCoordinator(memberId?: string | null) {
-    if (memberId && !membersMock.some((member) => member.id === memberId)) {
+  private assertCoordinator(organizationId: string, memberId?: string | null) {
+    // The seeded member list belongs to the seeded community; another community's members are the
+    // members repository's business, and the backend is the real check either way.
+    if (memberId && isSeedTenant(organizationId) && !membersMock.some((member) => member.id === memberId)) {
       throw new Error("A coordinator must be an organization member.")
     }
   }

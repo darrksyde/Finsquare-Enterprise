@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { Check, ChevronRight, Plus, ShieldCheck } from "@/icons"
 import { ErrorState, LoadingState } from "@/components/feedback/AsyncState"
 import {
@@ -14,8 +15,6 @@ import { useWorkspace } from "@/app/providers/WorkspaceProvider"
 import { scopedPermissionGroups } from "@/lib/permissions/permission-catalog"
 import type { Permission, Role } from "@/types"
 
-const organizationId = "org-lagos-farmers"
-
 export function RolesPage({
   selectedRoleId,
   onSelectRole,
@@ -25,6 +24,7 @@ export function RolesPage({
   onSelectRole: (id: string) => void
   notify: (message: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const { roles, status, error, retry, updateRole, createRole } =
     useAdministrators(organizationId)
   const { can } = useAuthorization()

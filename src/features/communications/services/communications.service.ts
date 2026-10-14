@@ -1,5 +1,5 @@
 import { env } from "@/app/config/env"
-import { walletService, type Mode } from "@/features/wallet/services/wallet.service"
+import { walletServiceFor, type Mode } from "@/features/wallet/services/wallet.service"
 import {
   canAfford,
   channelsFor,
@@ -177,7 +177,7 @@ export class CommunicationService {
     const amount = round2(input.amount)
     if (!(amount > 0)) throw new CommunicationError("Enter an amount greater than zero.")
 
-    const wallets = await walletService.load()
+    const wallets = await walletServiceFor(organizationId).load()
     const wallet = wallets.wallets.find((row) => row.id === input.walletId)
     if (!wallet) throw new CommunicationError("Choose a wallet to top up from.")
     if (wallet.organizationId !== organizationId) {
@@ -185,7 +185,7 @@ export class CommunicationService {
     }
 
     const reference = `SMS-${Date.now().toString().slice(-5)}`
-    await walletService.spend(
+    await walletServiceFor(organizationId).spend(
       {
         walletId: wallet.id,
         amount,

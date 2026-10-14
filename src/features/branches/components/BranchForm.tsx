@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Button, Field, Modal, SelectField } from "@/components/ui"
 import { branchSchema } from "../schemas/branch.schema"
 import type { Branch, CreateBranchInput } from "@/types"
-import { administratorsMock } from "@/features/administrators/mocks/administrators.mock"
+import { useAdministrators } from "@/features/administrators/hooks/useAdministrators"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 
 const emptyBranch: CreateBranchInput = {
   name: "",
@@ -45,12 +46,16 @@ export function BranchForm({
   )
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
+  const organizationId = useOrganizationId()
+  // The administrators a branch can be assigned to are the community's, so they come from the
+  // service rather than from a seeded list.
+  const { administrators } = useAdministrators(organizationId)
   if (!open) return null
   const parentName =
     branches.find((item) => item.id === values.parentBranchId)?.name ??
     "No parent branch"
   const administratorName =
-    administratorsMock.find((administrator) =>
+    administrators.find((administrator) =>
       values.administratorIds?.includes(administrator.id),
     )?.name ?? "Not assigned"
 
@@ -165,12 +170,12 @@ export function BranchForm({
             value={administratorName}
             options={[
               "Not assigned",
-              ...administratorsMock.map((administrator) => administrator.name),
+              ...administrators.map((administrator) => administrator.name),
             ]}
             onChange={(name) =>
               setValues({
                 ...values,
-                administratorIds: administratorsMock
+                administratorIds: administrators
                   .filter((administrator) => administrator.name === name)
                   .map((administrator) => administrator.id),
               })

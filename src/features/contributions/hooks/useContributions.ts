@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useWorkspace } from "@/app/providers/WorkspaceProvider"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import { memberWalletFor } from "@/features/wallet/domain/wallet.rules"
-import { walletService } from "@/features/wallet/services/wallet.service"
+import { walletServiceFor } from "@/features/wallet/services/wallet.service"
 import { moneyMovementMode } from "@/lib/permissions/capabilities"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { toISODate } from "../domain/calculations"
 import {
   amountLabel,
@@ -90,6 +91,8 @@ export function useContributions(organizationId: string) {
     actor,
     ctx,
     mode,
+    /** The tenant this data belongs to, so a mutation can name it without a second hook call. */
+    organizationId,
     environment: state.environment,
     today,
     summary,
@@ -120,6 +123,8 @@ export function usePublicContribution(slug: string, memberId?: string) {
   const [participant, setParticipant] = useState<ContributionParticipant | null>(null)
   const [memberWallet, setMemberWallet] = useState<{ id: string; availableBalance: number } | null>(null)
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
+  /** The link belongs to the organisation that published it, not to whichever community is active. */
+  const PUBLIC_LINK_ORG_ID = SEED_ORGANIZATION_ID
 
   useEffect(() => {
     let active = true
@@ -135,7 +140,8 @@ export function usePublicContribution(slug: string, memberId?: string) {
         setParticipant(found.participant ?? null)
         setData(found.dataset)
         if (memberId) {
-          const wallets = await walletService.load()
+          // The member's own wallet is the community's wallet, not whichever is active in the app.
+          const wallets = await walletServiceFor(PUBLIC_LINK_ORG_ID).load()
           if (active) {
             const wallet = memberWalletFor(wallets.wallets, memberId)
             setMemberWallet(wallet ? { id: wallet.id, availableBalance: wallet.availableBalance } : null)

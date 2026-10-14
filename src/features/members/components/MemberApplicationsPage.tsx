@@ -7,7 +7,7 @@ import { PagedTable, Panel, Tabs, downloadCsv, fmtDate } from "@/features/loans/
 import { ExportButtons } from "@/features/loans/components/LoanUi"
 import { printTable } from "@/features/wallet/domain/export"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
-import { MEMBER_ORG_ID } from "../constants"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { useMemberApplications } from "../hooks/useMemberApplications"
 import { applicantEmail, applicantName, applicantPhone } from "../domain/member-application.rules"
 import { ApplicationStatusBadge } from "./MemberApplicationUi"
@@ -22,7 +22,8 @@ const columns = ["Reference", "Applicant", "Phone", "Email", "Form", "Submitted"
  * member, so the decisions live on the row and in the detail page rather than in a bulk action.
  */
 export function MemberApplicationsPage({ navigate, notify }: { navigate: (view: View, id?: string) => void; notify: (message: string) => void }) {
-  const { data, status, error, retry } = useMemberApplications(MEMBER_ORG_ID)
+  const organizationId = useOrganizationId()
+  const { data, status, error, retry } = useMemberApplications(organizationId)
   const { can } = useAuthorization()
   const [tab, setTab] = useState<"All" | MemberApplicationStatus>("All")
   const [query, setQuery] = useState("")

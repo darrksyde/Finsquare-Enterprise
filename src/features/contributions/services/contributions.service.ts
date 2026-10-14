@@ -1,6 +1,6 @@
 import { env } from "@/app/config/env"
 import { memberWalletFor } from "@/features/wallet/domain/wallet.rules"
-import { walletService, type Mode } from "@/features/wallet/services/wallet.service"
+import { walletServiceFor, type Mode } from "@/features/wallet/services/wallet.service"
 import {
   commissionFor,
   contributionBalance,
@@ -13,7 +13,7 @@ import {
   toISODate,
 } from "../domain/calculations"
 import { commissionApplies, isPersonal, keepsRunningAfterPayout, nextExpectedAmount, paymentMethodsFor, publicLinkAvailable, requiresApproval, slugify } from "../domain/contribution.rules"
-import { CONTRIBUTION_ORG_ID } from "../constants"
+import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { ApiContributionRepository } from "../repositories/api-contribution.repository"
 import { createMockContributionRepository } from "../repositories/mock-contribution.repository"
 import type { ContributionRepository } from "../repositories/contribution.repository"
@@ -53,6 +53,15 @@ const isSimulated = (ctx: MutationContext) => ctx.mode !== "live"
 const now = () => new Date().toISOString()
 let sequence = 0
 const nextId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${(sequence += 1).toString(36)}`
+
+/**
+ * The tenant the public contribution links belong to.
+ *
+ * A public link carries no session, so the tenant cannot come from the active community: it belongs
+ * to the organisation that published the link. Resolving it from the slug is the backend's job, and
+ * until then the links address the seeded organisation, which is where the published pools live.
+ */
+const PUBLIC_LINK_ORG_ID = SEED_ORGANIZATION_ID
 
 /**
  * Contribution commands. Every method states what the real backend must enforce — balances,
@@ -150,7 +159,7 @@ export class ContributionService {
     // A Personal plan holds each member's money, so their wallet is opened when they join.
     if (input.form === "Personal") {
       for (const entry of input.participants ?? []) {
-        await walletService.ensureMemberWallet({ memberId: entry.memberId, memberName: entry.memberName }, ctx.actor)
+        await walletServiceFor(organizationId).ensureMemberWallet({ memberId: entry.memberId, memberName: entry.memberName }, ctx.actor)
       }
     }
 
@@ -267,7 +276,7 @@ export class ContributionService {
     const date = now()
     // The wallet pays first: a contribution is only recorded once the money has actually moved.
     if (input.method === "wallet") {
-      await this.debitMemberWallet(contribution, participant, round2(input.amount), ctx)
+      await this.debitMemberWallet(organizationId, contribution, participant, round2(input.amount), ctx)
     }
     const transaction: ContributionTransaction = {
       id: nextId("cttx"),
@@ -408,7 +417,7 @@ export class ContributionService {
       withdrawals: [withdrawal, ...dataset.withdrawals],
     }
     if (withdrawal.status === "Completed") {
-      await this.creditPayout(contribution, withdrawal, dataset.participants, ctx)
+      await this.creditPayout(organizationId, contribution, withdrawal, dataset.participants, ctx)
       update.transactions = [this.withdrawalTransaction(contribution, withdrawal, ctx), ...dataset.transactions]
       update.contributions = dataset.contributions.map((c) =>
         c.id === contribution.id ? this.settleContribution(c, withdrawal) : c,
@@ -440,7 +449,7 @@ export class ContributionService {
       completedAt: now(),
     }
 
-    await this.creditPayout(contribution, approved, dataset.participants, ctx)
+    await this.creditPayout(organizationId, contribution, approved, dataset.participants, ctx)
 
     await this.mutate(organizationId, (current) => ({
       withdrawals: current.withdrawals.map((w) => (w.id === withdrawalId ? approved : w)),
@@ -483,7 +492,7 @@ export class ContributionService {
       const contribution = contributions.find((c) => c.id === withdrawal.contributionId)
       if (!contribution) continue
       const completed: ContributionWithdrawal = { ...withdrawal, status: "Completed", completedAt: now() }
-      await this.creditPayout(contribution, completed, participants, ctx)
+      await this.creditPayout(organizationId, contribution, completed, participants, ctx)
       released.push(this.withdrawalTransaction(contribution, completed, ctx))
       contributions = contributions.map((c) => (c.id === contribution.id ? this.settleContribution(c, completed) : c))
       participants = this.settleParticipants(participants, completed)
@@ -514,7 +523,7 @@ export class ContributionService {
       actor: { id: "public-link", name: "Contribution link" },
       mode: "simulated",
     }
-    const dataset = await this.repo.load(CONTRIBUTION_ORG_ID)
+    const dataset = await this.repo.load(PUBLIC_LINK_ORG_ID)
     const contribution = dataset.contributions.find((c) => c.publicLink?.slug === input.slug)
     if (!contribution) return undefined
 
@@ -535,7 +544,7 @@ export class ContributionService {
     const participant: ContributionParticipant =
       existing ?? {
         id: nextId(`${contribution.id}:ext`),
-        organizationId: CONTRIBUTION_ORG_ID,
+        organizationId: PUBLIC_LINK_ORG_ID,
         contributionId: contribution.id,
         memberName: input.contributorName.trim(),
         isExternal: true,
@@ -553,7 +562,7 @@ export class ContributionService {
     // Anything else waits for the provider, and the administrator confirms it later.
     const payingFromWallet = input.method === "wallet"
     if (payingFromWallet) {
-      await this.debitMemberWallet(contribution, participant, round2(input.amount), mutationCtx)
+      await this.debitMemberWallet(PUBLIC_LINK_ORG_ID, contribution, participant, round2(input.amount), mutationCtx)
     }
     const amount = round2(input.amount)
     const settledBalance = payingFromWallet && existing
@@ -566,7 +575,7 @@ export class ContributionService {
     const reference = `PUB-${Math.floor(100_000 + Math.random() * 899_999)}`
     const transaction: ContributionTransaction = {
       id: nextId("cttx"),
-      organizationId: CONTRIBUTION_ORG_ID,
+      organizationId: PUBLIC_LINK_ORG_ID,
       reference,
       contributionId: contribution.id,
       participantId: participant.id,
@@ -585,7 +594,7 @@ export class ContributionService {
       simulated: isSimulated(mutationCtx),
     }
 
-    await this.repo.commit(CONTRIBUTION_ORG_ID, {
+    await this.repo.commit(PUBLIC_LINK_ORG_ID, {
       participants: existing
         ? dataset.participants.map((p) => (p.id === existing.id ? { ...p, ...settledBalance } : p))
         : [...dataset.participants, participant],
@@ -611,7 +620,7 @@ export class ContributionService {
     slug: string,
     memberId?: string,
   ): Promise<{ contribution: Contribution; dataset: ContributionDataset; participant?: ContributionParticipant } | undefined> {
-    const dataset = await this.repo.load(CONTRIBUTION_ORG_ID)
+    const dataset = await this.repo.load(PUBLIC_LINK_ORG_ID)
     const contribution = dataset.contributions.find((c) => c.publicLink?.slug === slug)
     if (!contribution) return undefined
     const participant = memberId
@@ -626,14 +635,15 @@ export class ContributionService {
    * treasury. The backend settles this in the same transaction as the plan debit.
    */
   private async creditPayout(
+    organizationId: string,
     contribution: Contribution,
     withdrawal: ContributionWithdrawal,
     participants: ContributionParticipant[],
     ctx: MutationContext,
   ): Promise<void> {
-    const targetWalletId = await this.payoutWalletId(contribution, withdrawal, participants)
+    const targetWalletId = await this.payoutWalletId(organizationId, contribution, withdrawal, participants)
     if (!targetWalletId) return
-    await walletService.credit(
+    await walletServiceFor(organizationId).credit(
       {
         walletId: targetWalletId,
         amount: withdrawal.netPayout,
@@ -649,12 +659,13 @@ export class ContributionService {
   }
 
   private async payoutWalletId(
+    organizationId: string,
     contribution: Contribution,
     withdrawal: ContributionWithdrawal,
     participants: ContributionParticipant[],
   ): Promise<string | undefined> {
     const { recipient } = contribution
-    const dataset = await walletService.load()
+    const dataset = await walletServiceFor(organizationId).load()
     const memberId =
       recipient.kind === "contributor"
         ? participants.find((p) => p.id === withdrawal.participantId)?.memberId
@@ -668,17 +679,18 @@ export class ContributionService {
 
   /** Debits the contributor's own wallet for a wallet-method payment. Throws if it cannot pay. */
   private async debitMemberWallet(
+    organizationId: string,
     contribution: Contribution,
     participant: ContributionParticipant,
     amount: number,
     ctx: MutationContext,
   ): Promise<void> {
     if (!participant.memberId) throw new Error("This contributor has no member wallet to pay from.")
-    const wallet = await walletService.ensureMemberWallet(
+    const wallet = await walletServiceFor(organizationId).ensureMemberWallet(
       { memberId: participant.memberId, memberName: participant.memberName },
       ctx.actor,
     )
-    await walletService.spend(
+    await walletServiceFor(organizationId).spend(
       {
         walletId: wallet.id,
         amount,

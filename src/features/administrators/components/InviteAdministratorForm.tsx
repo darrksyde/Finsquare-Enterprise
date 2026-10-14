@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { branchesMock } from "@/features/branches/mocks/branches.mock"
 import { Button, Field, Modal, SelectField } from "@/components/ui"
+import { useBranches } from "@/features/branches/hooks/useBranches"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { administratorInvitationSchema } from "../schemas/administrator.schema"
 import type { InviteAdministratorInput, Role } from "@/types"
 
@@ -15,6 +16,10 @@ export function InviteAdministratorForm({
   onClose: () => void
   onSubmit: (input: InviteAdministratorInput) => Promise<void>
 }) {
+  const organizationId = useOrganizationId()
+  // The branch options belong to the community being invited into, so they come from the service
+  // rather than from the seeded list.
+  const { branches } = useBranches(organizationId)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -23,7 +28,7 @@ export function InviteAdministratorForm({
   const [scopeType, setScopeType] = useState<"organization" | "branch">(
     "organization",
   )
-  const [branchName, setBranchName] = useState(branchesMock[0]?.name ?? "")
+  const [branchName, setBranchName] = useState(branches[0]?.name ?? "")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   if (!open) return null
@@ -31,7 +36,7 @@ export function InviteAdministratorForm({
   const submit = async () => {
     const roleId = roles.find((role) => role.name === roleName)?.id ?? ""
     const branchId =
-      branchesMock.find((branch) => branch.name === branchName)?.id ?? ""
+      branches.find((branch) => branch.name === branchName)?.id ?? ""
     const parsed = administratorInvitationSchema.safeParse({
       firstName,
       lastName,
@@ -57,7 +62,7 @@ export function InviteAdministratorForm({
         roleIds: parsed.data.roleIds,
         accessScope: {
           type: parsed.data.scopeType,
-          organizationId: "org-lagos-farmers",
+          organizationId,
           branchIds:
             parsed.data.scopeType === "branch"
               ? parsed.data.branchIds
@@ -112,7 +117,7 @@ export function InviteAdministratorForm({
             <SelectField
               label="Branch"
               value={branchName}
-              options={branchesMock.map((branch) => branch.name)}
+              options={branches.map((branch) => branch.name)}
               onChange={setBranchName}
             />
           )}

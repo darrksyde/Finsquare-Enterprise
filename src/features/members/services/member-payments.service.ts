@@ -5,7 +5,7 @@ import {
 import { duesService } from "@/features/dues/services/dues.service"
 import { todayISO } from "@/features/loans/domain/calculations"
 import { loansService } from "@/features/loans/services/loans.service"
-import { walletService } from "@/features/wallet/services/wallet.service"
+import { walletServiceFor } from "@/features/wallet/services/wallet.service"
 import type { ContributionPaymentMethodId } from "@/features/contributions/types/contribution.types"
 import type { RepaymentMethod } from "@/features/loans/types/loan.types"
 import type { MemberObligation } from "../domain/member-obligations"
@@ -57,7 +57,6 @@ export interface MemberPaymentResult {
  */
 export class MemberPaymentsService {
   constructor(
-    private wallet = walletService,
     private contributions = contributionsService,
     private loans = loansService,
     private dues = duesService,
@@ -110,11 +109,12 @@ export class MemberPaymentsService {
       } else {
         if (!obligation.loanId) continue
         if (input.method === "wallet") {
-          const wallet = await this.wallet.ensureMemberWallet(
+          // The tenant is bound here because the wallet is the community's, not the app's active one.
+          const wallet = await walletServiceFor(organizationId).ensureMemberWallet(
             { memberId: input.memberId, memberName: input.memberName },
             ctx.actor,
           )
-          await this.wallet.spend(
+          await walletServiceFor(organizationId).spend(
             {
               walletId: wallet.id,
               amount,

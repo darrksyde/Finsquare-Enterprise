@@ -6,7 +6,7 @@ import { useParticipantRoster } from "../hooks/useParticipantRoster"
 import { createDuesPlanSchema, firstError } from "../schemas/dues.schema"
 import { toISODate } from "../domain/schedule"
 import { DUES_FREQUENCIES } from "../types/dues.types"
-import { DUES_ORG_ID } from "../constants"
+
 import type { DuesCtx } from "./DuesUi"
 import type {
   CreateDuesPlanInput,
@@ -120,7 +120,7 @@ export function CreateDuesForm({ ctx }: { ctx: DuesCtx }) {
         roster,
         lien: draft.lien,
       }
-      const created = await ctx.service.createPlan(DUES_ORG_ID, input, ctx.ctx)
+      const created = await ctx.service.createPlan(ctx.organizationId, input, ctx.ctx)
       ctx.notify(
         `${created.name} created with ${roster.length} ${roster.length === 1 ? "participant" : "participants"}`,
       )

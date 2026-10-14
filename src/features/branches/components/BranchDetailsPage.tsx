@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useOrganizationId } from "@/hooks/useOrganizationId"
 import { GitBranch } from "@/icons"
 import { Button, SectionHeader } from "@/components/ui"
 import {
@@ -13,8 +14,6 @@ import { GroupStatusBadge } from "@/features/groups/components/GroupStatusBadge"
 import { BranchForm } from "./BranchForm"
 import type { CreateBranchInput } from "@/types"
 
-const organizationId = "org-lagos-farmers"
-
 export function BranchDetailsPage({
   branchId,
   onViewGroup,
@@ -22,6 +21,7 @@ export function BranchDetailsPage({
   branchId: string
   onViewGroup: (id: string) => void
 }) {
+  const organizationId = useOrganizationId()
   const { branch, members, groups, administrators, status, error, retry } =
     useBranch(organizationId, branchId)
   const { can } = useAuthorization()

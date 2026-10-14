@@ -4,8 +4,24 @@ Permissions are granular strings: `<module>.<action>` (e.g. `members.view`, `loa
 
 - `permissionCatalog` — all groups; each group is keyed to a module and may be flagged `organizationOnly` (administrators, roles, settings & compliance).
 - `scopedPermissionGroups(enabledModules: ReadonlySet<string>, scope)` — the groups a role can be granted. Disabled modules' permissions are hidden; branch/group-scoped roles cannot receive organization-only permissions. Module cards in Settings show "Unlocks permissions: …".
-- `useAuthorization()` provides `can(permission)` used by pages and navigation.
+- `useAuthorization()` provides `administrator`, `roles`, `can(permission)` and `canAccessBranch(branchId)`, used by pages and navigation.
 - `src/lib/permissions/capabilities.ts` — `canPerform(...)` / `moneyMovementMode(environment)` for environment (demo/live) gating of financial actions.
+
+## Whose permissions they are
+`useAuthorization()` answers for the **active community**, from two real sources:
+
+- the **role** is the one your membership of that community carries (`state.communities` → the active
+  slice), resolved through `systemRolesFor(activeCommunityId)`;
+- the **identity** is the administrator account (`state.admin` / the session).
+
+So the same person can be a Super Admin in one community and a Finance Officer in another, and the
+sidebar, the pages and the action buttons follow the role they hold there. Switching community
+re-checks everything, because the answers change with the tenant. See `communities.md`.
+
+The system roles themselves live in `src/lib/permissions/system-roles.ts` — Super Admin,
+Administrator, Finance Officer, Finance Manager, Membership Officer, Branch Administrator, Auditor —
+and exist in **every** community, so a role id is stable across tenants. A community's own custom
+roles are stored by its administrators repository and returned alongside them.
 
 ## Wallet-level access
 Effective wallet permission = role permission **AND** a per-wallet (or `"*"`) `WalletAccess` grant. Helpers: `canOnWallet`, `walletsWith`, `visibleWallets`. Managed in Wallet → Access & controls.
@@ -38,7 +54,7 @@ they decide when the organization takes money out of a member's wallet, so a bra
 role cannot set them. `dues.recover` gates the explicit **Recover now** action, not the automatic
 collection that a wallet credit triggers. See `dues.md`.
 
-**The role mocks decide what the signed-in administrator can do.** `administrators.mock.ts` holds
-`allPermissions` (the super-admin, and `currentAdministratorMock`'s role) and each named role. A new
-permission that is added to `permission-catalog.ts` but not to those lists grants nothing and renders
-an empty page.
+**The system roles decide what the signed-in administrator can do**, and they live in
+`src/lib/permissions/system-roles.ts`. A new permission that is added to `permission-catalog.ts` but
+not to those role definitions grants nothing and renders an empty page. The Super Admin holds the
+whole catalog, so anything added there is reachable by at least one role.
