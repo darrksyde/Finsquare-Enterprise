@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useWorkspace, ORGANIZATION_TYPES, type OrganizationProfile } from "@/app/providers/WorkspaceProvider"
 import { useAppRoute } from "@/app/routes/useAppRoute"
+import { useAuth } from "@/features/auth/hooks/useAuth"
 import { Badge, Button, Field, SelectField } from "@/components/ui"
 import OrgAvatar from "@/components/layout/OrgAvatar"
 import AccentPicker from "@/features/settings/components/AccentPicker"
@@ -24,6 +25,7 @@ const SECONDARY_PRESETS = ["#0f766e", "#7c3aed", "#d97706", "#be123c", "#475569"
 
 export default function OnboardingFlow({ onLogin }: { onLogin?: () => void } = {}) {
   const { state, dispatch } = useWorkspace()
+  const { signUp, pending, error } = useAuth()
   const { navigate } = useAppRoute()
   const [step, setStep] = useState(0)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -56,7 +58,38 @@ export default function OnboardingFlow({ onLogin }: { onLogin?: () => void } = {
     </div>
   )
 
-  const finish = () => {
+  const finish = async () => {
+    const profile = {
+      type: org.type,
+      legalName: org.legalName,
+      registrationNumber: org.registrationNumber,
+      country: org.country,
+      state: org.state,
+      city: org.city,
+      address: org.address,
+      website: org.website,
+      yearEstablished: org.yearEstablished,
+      memberCount: org.memberCount,
+      areaOfOperation: org.areaOfOperation,
+      secondaryColor: org.secondaryColor,
+      logo: org.logo,
+      email: org.email,
+      phone: org.phone,
+      description: org.description,
+    }
+    const ok = await signUp({
+      name: org.name,
+      description: org.description,
+      logo: org.logo,
+      color: org.secondaryColor,
+      ownerName: account.name,
+      ownerEmail: account.email,
+      ownerPhone: account.phone,
+      ownerPassword: account.password,
+      profile,
+      corporate: corporateSubmitted ? { ...state.corporateDetails } : undefined,
+    })
+    if (!ok) return
     dispatch({ type: "onboarding/completed" })
     navigate("overview")
   }
@@ -264,9 +297,10 @@ export default function OnboardingFlow({ onLogin }: { onLogin?: () => void } = {
                   <span>Finish the corporate account step whenever you&apos;re ready — a banner in the workspace will bring you back to it.</span>
                 </div>
               )}
+              {error && <small className="field-error">{error}</small>}
               <div className="onb-actions">
-                <Button variant="ghost" icon={ArrowLeft} onClick={() => go(3)}>Back</Button>
-                <Button onClick={finish}>Complete setup</Button>
+                <Button variant="ghost" icon={ArrowLeft} onClick={() => go(3)} disabled={pending}>Back</Button>
+                <Button onClick={finish} disabled={pending}>{pending ? "Creating workspace…" : "Complete setup"}</Button>
               </div>
             </>
           )}

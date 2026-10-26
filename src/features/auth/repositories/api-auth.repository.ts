@@ -1,7 +1,7 @@
 import { apiClient, endpoints } from "@/services/api"
 import { mapMfiMembership, type MfiRole } from "@/features/communities/domain/mfi-membership"
 import type { AuthRepository } from "./auth.repository"
-import type { AuthOutcome, AuthResult, Session, SignInCredentials } from "../types"
+import type { AuthOutcome, AuthResult, Session, SignInCredentials, SignUpInput } from "../types"
 
 /** Backend response shape after the client unwraps `{ success, data }`. */
 interface MfiLoginData {
@@ -36,6 +36,7 @@ interface MfiCommunity {
   color?: string | null
   description?: string | null
   enabledFeatures?: string[]
+  details?: { profile?: Record<string, unknown>; corporate?: Record<string, unknown> } | null
 }
 
 function displayName(user: MfiLoginData["user"]): string {
@@ -80,6 +81,22 @@ export class ApiAuthRepository implements AuthRepository {
     }
 
     return { status: "signed-in", result: mapAuthResult(response as MfiLoginData) }
+  }
+
+  async signUp(input: SignUpInput): Promise<AuthOutcome> {
+    const response = await apiClient.post<MfiLoginData>(endpoints.auth.register, {
+      name: input.name,
+      description: input.description,
+      logo: input.logo,
+      color: input.color,
+      ownerName: input.ownerName,
+      ownerEmail: input.ownerEmail,
+      ownerPhone: input.ownerPhone,
+      ownerPassword: input.ownerPassword,
+      profile: input.profile,
+      corporate: input.corporate,
+    })
+    return { status: "signed-in", result: mapAuthResult(response) }
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {

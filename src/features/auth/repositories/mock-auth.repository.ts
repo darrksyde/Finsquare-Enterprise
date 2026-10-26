@@ -1,5 +1,5 @@
 import type { AuthRepository } from "./auth.repository"
-import type { AuthOutcome, SignInCredentials } from "../types"
+import type { AuthOutcome, SignInCredentials, SignUpInput } from "../types"
 
 /** `ada.okoye@example.com` → `Ada Okoye`, so a returning user still sees a sensible name. */
 export function nameFromEmail(email: string): string {
@@ -31,6 +31,21 @@ export class MockAuthRepository implements AuthRepository {
         },
         accessToken: "mock-access-token",
         // The mock has no account store; the communities come from `useCommunities`, not from login.
+        memberships: [],
+      },
+    }
+  }
+
+  async signUp(input: SignUpInput): Promise<AuthOutcome> {
+    return {
+      status: "signed-in",
+      result: {
+        session: {
+          email: input.ownerEmail.trim(),
+          name: input.ownerName.trim(),
+          signedInAt: new Date().toISOString(),
+        },
+        accessToken: "mock-access-token",
         memberships: [],
       },
     }

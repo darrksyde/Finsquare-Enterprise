@@ -3,7 +3,7 @@ import { env } from "@/app/config/env"
 import { ApiAuthRepository } from "../repositories/api-auth.repository"
 import { MockAuthRepository } from "../repositories/mock-auth.repository"
 import type { AuthRepository } from "../repositories/auth.repository"
-import type { AuthOutcome, SignInCredentials } from "../types"
+import type { AuthOutcome, SignInCredentials, SignUpInput } from "../types"
 
 const repository: AuthRepository = env.VITE_ENABLE_MOCKS ? new MockAuthRepository() : new ApiAuthRepository()
 
@@ -14,6 +14,14 @@ configureApiAuth(() => accessToken)
 export const authService = {
   async signIn(credentials: SignInCredentials): Promise<AuthOutcome> {
     const outcome = await repository.signIn(credentials)
+    if (outcome.status === "signed-in") {
+      accessToken = outcome.result.accessToken
+    }
+    return outcome
+  },
+
+  async signUp(input: SignUpInput): Promise<AuthOutcome> {
+    const outcome = await repository.signUp(input)
     if (outcome.status === "signed-in") {
       accessToken = outcome.result.accessToken
     }

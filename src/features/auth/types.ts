@@ -34,3 +34,17 @@ export type LoginOutcome =
   | { needsSelection: false }
   | { needsSelection: true; communities: CommunityMembership[] }
 
+/** What onboarding collects to create a new workspace (self-service registration). */
+export interface SignUpInput {
+  name: string
+  description?: string
+  logo?: string
+  color?: string
+  ownerName: string
+  ownerEmail: string
+  ownerPhone: string
+  ownerPassword: string
+  profile?: Record<string, unknown>
+  corporate?: Record<string, unknown>
+}
+

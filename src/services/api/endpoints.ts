@@ -2,6 +2,7 @@ export const endpoints = {
   auth: {
     login: "/auth/login",
     changePassword: "/auth/change-password",
+    register: "/self-register",
     // No logout endpoint exists on the MFI backend: the JWT is stateless, so sign-out is client-side only.
   },
   /** MFI portfolio statistics backing the overview dashboard. */

@@ -10,6 +10,7 @@ export interface MfiCommunityIdentity {
   color?: string | null
   description?: string | null
   enabledFeatures?: string[]
+  details?: { profile?: Record<string, unknown>; corporate?: Record<string, unknown> } | null
 }
 
 /**
@@ -33,20 +34,18 @@ export function roleForMfiRole(mfiRole: MfiRole): {
 }
 
 /** Maps an MFI community + the staff member's role onto the workspace membership domain model. */
-export function mapMfiMembership(
-  community: MfiCommunityIdentity,
-  mfiRole: MfiRole,
-): CommunityMembership {
+export function mapMfiMembership(community: MfiCommunityIdentity, mfiRole: MfiRole): CommunityMembership {
   const role = roleForMfiRole(mfiRole)
+  const profile = community.details?.profile ?? {}
+  const str = (v: unknown): string => (typeof v === "string" ? v : "")
   return {
     organizationId: community.id,
     name: community.name,
-    // The MFI payload carries no organization type, country or legal name.
-    type: "MFI",
-    logo: community.logo ?? "",
-    country: "",
-    legalName: "",
-    accent: community.color ?? "blue",
+    type: str(profile.type) || "MFI",
+    logo: community.logo ?? str(profile.logo),
+    country: str(profile.country),
+    legalName: str(profile.legalName),
+    accent: community.color ?? (str(profile.secondaryColor) || "blue"),
     roleId: role.roleId,
     roleName: role.roleName,
     scope: "organization",
