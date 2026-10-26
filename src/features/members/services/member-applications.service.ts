@@ -135,6 +135,12 @@ export class MemberApplicationsService {
   /** The applicant shown in the applications list, resolved from the answers. */
   applicantOf = (application: MemberApplication) => applicantName(application.values)
 
+  /** Public link: resolves a form by slug without a session. */
+  getPublicForm = (slug: string) => this.repository.getPublicForm(slug)
+
+  /** Public link: submission is owned by the backend (reference, join decision, member creation). */
+  submitPublic = (slug: string, values: Record<string, FormResponseValue>) => this.repository.submitPublic(slug, values)
+
   private async formFor(organizationId: string, application: MemberApplication) {
     const dataset = await this.repository.load(organizationId)
     return dataset.forms.find((form) => form.id === application.formId)

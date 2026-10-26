@@ -1,33 +1,49 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FormRenderer } from "@/features/forms/components/FormRenderer"
 import { publishedVersion } from "@/features/forms/domain/forms"
 import { LoadingState } from "@/components/feedback/AsyncState"
-import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
-import { useMemberApplications } from "../hooks/useMemberApplications"
+import { memberApplicationsService } from "../services/member-applications.service"
 import { applicationLinkLive } from "../domain/member-application.rules"
+import type { MemberApplicationForm } from "../types/member-application.types"
 
 /**
  * The link anyone can open — no FinSquare account needed. It answers only while the form is
  * published and the administrator has left the link switched on.
  *
- * The link carries no session, so the tenant cannot come from the active community: it belongs to the
- * organisation that published the form. Resolving it from the slug is the backend's job, and until
- * then the link addresses the seeded organisation, which is where the published forms live.
+ * The link carries no session, so the tenant cannot come from the active community: the backend
+ * resolves the form from its slug through the public endpoint.
  */
-const PUBLIC_LINK_ORG_ID = SEED_ORGANIZATION_ID
-
 export function PublicMemberApplicationPage({ slug }: { slug: string }) {
-  const { data, service } = useMemberApplications(PUBLIC_LINK_ORG_ID)
+  const [form, setForm] = useState<MemberApplicationForm | null>(null)
+  const [loading, setLoading] = useState(true)
   const [reference, setReference] = useState("")
   const [joined, setJoined] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    memberApplicationsService
+      .getPublicForm(slug)
+      .then((result) => {
+        if (!active) return
+        setForm(result)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!active) return
+        setForm(null)
+        setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [slug])
 
   const wrap = (content: React.ReactNode) => (
     <div className="page" style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>{content}</div>
   )
 
-  if (!data) return wrap(<LoadingState label="Loading application form…" />)
+  if (loading) return wrap(<LoadingState label="Loading application form…" />)
 
-  const form = data.forms.find((item) => item.slug === slug)
   if (!form || !applicationLinkLive(form)) {
     return wrap(
       <>
@@ -75,7 +91,7 @@ export function PublicMemberApplicationPage({ slug }: { slug: string }) {
             : "Thank you. An administrator will review your application and contact you."
         }
         onSubmit={async (values) => {
-          const application = await service.submit(PUBLIC_LINK_ORG_ID, { form, version, values, source: "Public link" })
+          const application = await memberApplicationsService.submitPublic(slug, values)
           setJoined(application.status === "Approved")
           setReference(application.reference)
         }}

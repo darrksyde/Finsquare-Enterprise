@@ -17,6 +17,11 @@ export interface CommunityMembership {
   legalName: string
   /** The community's primary colour; the workspace accent follows the active community. */
   accent: string
+  /**
+   * Optional richer organization details from the MFI backend (`community.details.profile`).
+   * Used to seed the full workspace profile for newly-added communities.
+   */
+  profile?: Record<string, unknown>
   roleId: EntityId
   /** Display name of `roleId`, resolved by the backend so the UI never has to look a role up. */
   roleName: string

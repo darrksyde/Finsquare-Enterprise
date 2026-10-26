@@ -46,6 +46,7 @@ export function mapMfiMembership(community: MfiCommunityIdentity, mfiRole: MfiRo
     country: str(profile.country),
     legalName: str(profile.legalName),
     accent: community.color ?? (str(profile.secondaryColor) || "blue"),
+    profile: Object.keys(profile).length ? profile : undefined,
     roleId: role.roleId,
     roleName: role.roleName,
     scope: "organization",

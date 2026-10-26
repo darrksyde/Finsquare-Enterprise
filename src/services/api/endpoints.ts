@@ -41,25 +41,31 @@ export const endpoints = {
     recoverySettings: "/loans/recovery/settings",
   },
   members: {
-    list: (organizationId: string) =>
-      `/organizations/${organizationId}/members`,
-    detail: (organizationId: string, memberId: string) =>
-      `/organizations/${organizationId}/members/${memberId}`,
-    import: (organizationId: string) =>
-      `/organizations/${organizationId}/members/import`,
+    list: "/customers",
+    all: "/enterprise/customers",
+    detail: (memberId: string) => `/customers/${memberId}`,
+    enrol: "/customers/enrol",
+    import: "/customers/import",
   },
   groups: {
-    list: (organizationId: string) => `/organizations/${organizationId}/groups`,
-    detail: (organizationId: string, groupId: string) =>
-      `/organizations/${organizationId}/groups/${groupId}`,
-    members: (organizationId: string, groupId: string) =>
-      `/organizations/${organizationId}/groups/${groupId}/members`,
+    list: "/groups",
+    types: "/groups/types",
+    detail: (groupId: string) => `/groups/${groupId}`,
+    members: (groupId: string) => `/groups/${groupId}/members`,
+    member: (groupId: string, memberId: string) =>
+      `/groups/${groupId}/members/${memberId}`,
+    archive: (groupId: string) => `/groups/${groupId}/archive`,
+    activate: (groupId: string) => `/groups/${groupId}/activate`,
   },
   branches: {
-    list: (organizationId: string) =>
-      `/organizations/${organizationId}/branches`,
-    detail: (organizationId: string, branchId: string) =>
-      `/organizations/${organizationId}/branches/${branchId}`,
+    list: "/branches",
+    detail: (branchId: string) => `/branches/${branchId}`,
+    members: (branchId: string) => `/branches/${branchId}/members`,
+    groups: (branchId: string) => `/branches/${branchId}/groups`,
+    administrators: (branchId: string) =>
+      `/branches/${branchId}/administrators`,
+    archive: (branchId: string) => `/branches/${branchId}/archive`,
+    activate: (branchId: string) => `/branches/${branchId}/activate`,
   },
   administrators: {
     list: (organizationId: string) =>
@@ -119,12 +125,10 @@ export const endpoints = {
       `/organizations/${organizationId}/question-library`,
   },
   memberApplications: {
-    workspace: (organizationId: string) =>
-      `/organizations/${organizationId}/member-applications`,
-    forms: (organizationId: string) =>
-      `/organizations/${organizationId}/member-applications/forms`,
-    applications: (organizationId: string) =>
-      `/organizations/${organizationId}/member-applications/applications`,
+    workspace: "/member-applications",
+    forms: "/member-applications/forms",
+    applications: "/member-applications/applications",
     publicForm: (slug: string) => `/public/member-applications/${slug}`,
+    publicSubmit: (slug: string) => `/public/member-applications/${slug}/submit`,
   },
 } as const

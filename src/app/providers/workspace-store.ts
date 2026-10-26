@@ -181,6 +181,8 @@ function seededCompliance(): ComplianceDocumentStatus[] {
  */
 export function sliceFromMembership(membership: CommunityMembership): WorkspaceCommunity {
   const seeded = membership.organizationId === SEED_ORGANIZATION_ID
+  const profile = membership.profile ?? {}
+  const str = (key: string): string => (typeof profile[key] === "string" ? (profile[key] as string) : "")
   return {
     id: membership.organizationId,
     roleId: membership.roleId,
@@ -195,6 +197,18 @@ export function sliceFromMembership(membership: CommunityMembership): WorkspaceC
       country: membership.country,
       logo: membership.logo,
       legalName: membership.legalName,
+      registrationNumber: str("registrationNumber"),
+      yearEstablished: str("yearEstablished"),
+      description: str("description"),
+      memberCount: str("memberCount"),
+      areaOfOperation: str("areaOfOperation"),
+      secondaryColor: str("secondaryColor") || emptyOrganization.secondaryColor,
+      email: str("email"),
+      phone: str("phone"),
+      website: str("website"),
+      address: str("address"),
+      city: str("city"),
+      state: str("state"),
     },
     accent: membership.accent,
     enabledModules: DEFAULT_ENABLED_MODULES,

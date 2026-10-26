@@ -52,6 +52,9 @@ export interface CreateMemberInput {
   bvn?: string
   branchId?: EntityId
   groupIds: EntityId[]
+  /** Display names resolved from the groups/branches stores, persisted additively by the API backend. */
+  groupName?: string
+  branchName?: string
   /** A member created from an approved application is active from the outset. */
   status?: MemberStatus
 }

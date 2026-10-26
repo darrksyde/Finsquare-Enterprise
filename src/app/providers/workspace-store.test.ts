@@ -78,6 +78,45 @@ describe("workspace store", () => {
     expect(slice.onboardingCompleted).toBe(true)
   })
 
+  it("seeds the full organization profile from the membership's backend details", () => {
+    const slice = sliceFromMembership(
+      membership({
+        profile: {
+          registrationNumber: "RC-991100",
+          yearEstablished: "2019",
+          description: "Community lender",
+          memberCount: "1200",
+          areaOfOperation: "Agriculture",
+          secondaryColor: "#be123c",
+          email: "hello@greenfield.test",
+          phone: "+234 801 000 0000",
+          website: "https://greenfield.test",
+          address: "1 Main Road",
+          city: "Abeokuta",
+          state: "Ogun",
+        },
+      }),
+    )
+
+    expect(slice.organization.registrationNumber).toBe("RC-991100")
+    expect(slice.organization.yearEstablished).toBe("2019")
+    expect(slice.organization.description).toBe("Community lender")
+    expect(slice.organization.memberCount).toBe("1200")
+    expect(slice.organization.areaOfOperation).toBe("Agriculture")
+    expect(slice.organization.secondaryColor).toBe("#be123c")
+    expect(slice.organization.email).toBe("hello@greenfield.test")
+    expect(slice.organization.phone).toBe("+234 801 000 0000")
+    expect(slice.organization.website).toBe("https://greenfield.test")
+    expect(slice.organization.address).toBe("1 Main Road")
+    expect(slice.organization.city).toBe("Abeokuta")
+    expect(slice.organization.state).toBe("Ogun")
+  })
+
+  it("keeps the default accent colour when the profile has none", () => {
+    const slice = sliceFromMembership(membership({ profile: { email: "hello@greenfield.test" } }))
+    expect(slice.organization.secondaryColor).toBe("#0f766e")
+  })
+
   it("adds a membership it has not seen and keeps the active community", () => {
     const store = storeWith([
       sliceFromMembership(membership({ organizationId: SEED_ORGANIZATION_ID, name: "Lagos Farmers Cooperative" })),

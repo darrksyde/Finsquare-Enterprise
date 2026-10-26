@@ -90,6 +90,8 @@ function ManualStep({ onClose, notify, onBack }: { onClose: () => void; notify: 
   const submit = async () => {
     setTried(true)
     if (!valid) return
+    const selectedGroup = activeGroups.find((group) => group.id === form.groupId)
+    const selectedBranch = activeBranches.find((branch) => branch.id === form.branchId)
     const member = await create({
       name: form.name.trim(),
       phone: form.phone.trim(),
@@ -99,7 +101,9 @@ function ManualStep({ onClose, notify, onBack }: { onClose: () => void; notify: 
       nin: form.nin.trim() || undefined,
       bvn: form.bvn.trim() || undefined,
       branchId: form.branchId || undefined,
-      groupIds: [form.groupId],
+      branchName: selectedBranch?.name,
+      groupIds: form.groupId ? [form.groupId] : [],
+      groupName: selectedGroup?.name,
       status: "Active",
     })
     if (!member) return
