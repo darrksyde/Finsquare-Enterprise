@@ -5,7 +5,7 @@ needed, and an empty folder is valid.
 
 | File | Used for |
 | --- | --- |
-| `logo.png` | The mark, shown in both themes. Committed: the four-square FinSquare mark |
+| `logo.png` | The mark, shown in both themes. Not committed yet — the repo previously held a broken Git LFS pointer, which was removed. Drop the real PNG here to restore the four-square FinSquare mark |
 | `logo-dark.svg` | Optional mark for the dark theme. Falls back to `logo` |
 | `logo-full.svg` | Optional full lockup — mark **and** wordmark together. The built-in "FinSquare / ENTERPRISE" text is hidden when this is present |
 | `logo-full-dark.svg` | Optional full lockup for the dark theme |
