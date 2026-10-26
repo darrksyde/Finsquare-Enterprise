@@ -6,35 +6,37 @@ import {
   HandCoins,
   Landmark,
   LockKeyhole,
-  Network,
   Plus,
   ReceiptText,
-  ShieldCheck,
-  Upload,
   UserCog,
   UserPlus,
   Users,
 } from "@/icons"
 import { Button, Badge, SectionHeader } from "@/components/ui"
 import { EmptyState, ErrorState, LoadingState } from "@/components/feedback/AsyncState"
+import { env } from "@/app/config/env"
 import { useAuthorization } from "@/features/administrators/hooks/useAuthorization"
 import { useDashboard } from "./hooks/useDashboard"
-import type { Metric } from "./domain/dashboard"
+import { useApiDashboard } from "./hooks/useApiDashboard"
+import type { DashboardData, Metric } from "./domain/dashboard"
 import type { View } from "@/types"
 
 const METRIC_ICONS: Record<Metric["id"], typeof Users> = {
-  members: Users,
-  groups: Network,
-  contributions: HandCoins,
-  dues: ReceiptText,
-  loans: Banknote,
-  approvals: ClipboardCheck,
+  customers: Users,
+  "active-loans": Banknote,
+  "pending-applications": ClipboardCheck,
+  disbursed: HandCoins,
+  repaid: ReceiptText,
+  overdue: Clock3,
 }
 
-/** The two setup items read differently from the record queues, so they get their own icons. */
+/** Attention items read differently from the metric cards, so they get their own icons. */
 const ATTENTION_ICONS: Record<string, typeof Clock3> = {
   corporate: Landmark,
-  compliance: ShieldCheck,
+  wallet: HandCoins,
+  staff: UserCog,
+  loans: Banknote,
+  customers: Users,
 }
 
 /**
@@ -44,20 +46,23 @@ const ATTENTION_ICONS: Record<string, typeof Clock3> = {
  * switching communities changes the numbers, and a community with no records gets a get-started panel
  * instead of six cards reading zero.
  */
-export function Dashboard({
-  live,
-  setView,
-  onImport,
-  administratorName,
-  organizationName,
-}: {
+interface DashboardProps {
   live: boolean
   setView: (v: View) => void
   onImport: () => void
   administratorName: string
   organizationName: string
-}) {
-  const { status, error, retry, metrics, attention, latestMembers, hasNoRecords, eyebrow, greeting } = useDashboard()
+}
+
+/** Presentational shell: renders whichever `DashboardData` the active source produced. */
+function DashboardView({
+  data,
+  live,
+  setView,
+  administratorName,
+  organizationName,
+}: DashboardProps & { data: DashboardData }) {
+  const { status, error, retry, metrics, attention, latestCustomers, hasNoRecords, eyebrow, greeting } = data
   const { can } = useAuthorization()
 
   return (
@@ -69,7 +74,7 @@ export function Dashboard({
         actions={
           can("members.create") ? (
             <Button icon={Plus} onClick={() => setView("members")}>
-              Add member
+              Enrol customer
             </Button>
           ) : undefined
         }
@@ -82,31 +87,31 @@ export function Dashboard({
         <section className="panel" style={{ padding: 20 }}>
           <EmptyState
             title="Nothing here yet"
-            description={`${organizationName} has no members, groups or plans yet. Start with a member, or choose the modules you want to work with.`}
+            description={`${organizationName} has no customers, loans or savings groups yet. Start by enrolling a customer.`}
           />
           <div className="quick-grid" style={{ marginTop: 14 }}>
             {can("members.create") && (
               <button type="button" onClick={() => setView("members")}>
                 <UserPlus size={17} />
-                Add member
+                Enrol customer
               </button>
             )}
-            {can("members.import") && (
-              <button type="button" onClick={onImport}>
-                <Upload size={17} />
-                Import members
+            {can("loan_products.create") && (
+              <button type="button" onClick={() => setView("loan-products")}>
+                <Banknote size={17} />
+                Create loan product
               </button>
             )}
-            {can("settings.manage") && (
-              <button type="button" onClick={() => setView("modules")}>
+            {can("administrators.invite") && (
+              <button type="button" onClick={() => setView("administrators")}>
                 <UserCog size={17} />
-                Choose modules
+                Invite staff
               </button>
             )}
-            {can("settings.manage") && (
-              <button type="button" onClick={() => setView("corporate")}>
+            {can("wallet.view") && (
+              <button type="button" onClick={() => setView("wallet")}>
                 <Landmark size={17} />
-                Connect corporate account
+                Setup wallet
               </button>
             )}
           </div>
@@ -174,27 +179,23 @@ export function Dashboard({
               <div className="quick-grid">
                 <button type="button" onClick={() => setView("members")}>
                   <UserPlus size={17} />
-                  Add member
+                  Enrol customer
                 </button>
-                <button type="button" onClick={onImport}>
-                  <Upload size={17} />
-                  Import members
+                <button type="button" onClick={() => setView("loan-applications")}>
+                  <ClipboardCheck size={17} />
+                  Review applications
                 </button>
-                <button type="button" onClick={() => setView("contributions")}>
-                  <HandCoins size={17} />
-                  Create contribution
-                </button>
-                <button type="button" onClick={() => setView("dues")}>
-                  <ReceiptText size={17} />
-                  Create dues
-                </button>
-                <button type="button" onClick={() => setView("loans")}>
+                <button type="button" onClick={() => setView("loan-products")}>
                   <Banknote size={17} />
                   Create loan product
                 </button>
                 <button type="button" onClick={() => setView("administrators")}>
                   <UserCog size={17} />
-                  Invite administrator
+                  Invite staff
+                </button>
+                <button type="button" onClick={() => setView("wallet")}>
+                  <Landmark size={17} />
+                  Manage wallet
                 </button>
               </div>
               <div className={`transaction-note ${live ? "enabled" : ""}`}>
@@ -218,31 +219,28 @@ export function Dashboard({
           <section className="panel recent-panel">
             <div className="panel-head">
               <div>
-                <b>Latest members</b>
-                <span>The most recent records added to {organizationName}</span>
+                <b>Latest customers</b>
+                <span>The most recent customers enrolled at {organizationName}</span>
               </div>
-              {latestMembers.length > 0 && (
+              {latestCustomers.length > 0 && (
                 <Button variant="ghost" onClick={() => setView("members")}>
                   View all
                 </Button>
               )}
             </div>
-            {latestMembers.length === 0 ? (
-              <EmptyState title="No members yet" description="Members you add or import will appear here." />
+            {latestCustomers.length === 0 ? (
+              <EmptyState title="No customers yet" description="Customers you enrol will appear here." />
             ) : (
-              latestMembers.map((member) => (
-                <div className="activity-row" key={member.id}>
+              latestCustomers.map((customer) => (
+                <div className="activity-row" key={customer.id}>
                   <div className="activity-dot blue">
                     <Users size={14} />
                   </div>
                   <div>
-                    <b>{member.name}</b>
-                    <span>
-                      {member.group} · {member.status}
-                    </span>
+                    <b>{customer.name}</b>
+                    <span>{customer.status}</span>
                   </div>
-                  {/* `joinedAt` is already a display date in the members register, so it is shown as it is. */}
-                  <span className="activity-when">{member.joinedAt}</span>
+                  <span className="activity-when">{customer.joinedAt}</span>
                 </div>
               ))
             )}
@@ -251,6 +249,21 @@ export function Dashboard({
       )}
     </div>
   )
+}
+
+/** The mock source: aggregates the feature stores for the seeded tenant. */
+function MockDashboard(props: DashboardProps) {
+  return <DashboardView data={useDashboard()} {...props} />
+}
+
+/** The API source: reads the MFI backend's `/dashboard` statistics. */
+function ApiDashboard(props: DashboardProps) {
+  return <DashboardView data={useApiDashboard()} {...props} />
+}
+
+/** The overview page. The source follows the global mock/API switch. */
+export function Dashboard(props: DashboardProps) {
+  return env.VITE_ENABLE_MOCKS ? <MockDashboard {...props} /> : <ApiDashboard {...props} />
 }
 
 export default Dashboard

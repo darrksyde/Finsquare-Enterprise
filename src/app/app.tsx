@@ -35,6 +35,7 @@ import ReportsPage from "@/features/reports/pages/ReportsPage"
 import OrganizationProfilePage from "@/features/organization/components/OrganizationProfile"
 import OnboardingFlow from "@/features/onboarding/components/OnboardingFlow"
 import AuthPage from "@/features/auth/components/AuthPage"
+import ForcedChangePasswordPage from "@/features/auth/components/ForcedChangePasswordPage"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import EnvironmentBanner from "@/features/onboarding/components/EnvironmentBanner"
 import Breadcrumbs from "@/components/navigation/Breadcrumbs"
@@ -396,6 +397,7 @@ export default function FinSquareApp() {
       />
     )
   }
+  if (state.session.mustChangePassword) return <ForcedChangePasswordPage />
   if (!state.onboardingCompleted) return <OnboardingFlow />
 
   return (

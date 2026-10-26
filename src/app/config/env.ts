@@ -2,6 +2,8 @@ import { z } from "zod"
 
 const envSchema = z.object({
   VITE_API_URL: z.string().url().default("http://localhost:3000"),
+  /** The backend mounts every MFI endpoint under `/api/v1/mfi`; the client joins this to the origin. */
+  VITE_API_PREFIX: z.string().default("/api/v1/mfi"),
   VITE_APP_ENV: z
     .enum(["development", "staging", "production"])
     .default("development"),

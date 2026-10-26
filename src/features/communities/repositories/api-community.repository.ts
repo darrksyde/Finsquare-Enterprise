@@ -1,61 +1,39 @@
-import { apiClient, endpoints } from "@/services/api"
-import type { CommunityMembership, CreateCommunityInput } from "../types"
+import { ApiError, apiClient, endpoints } from "@/services/api"
+import { mapMfiMembership, type MfiRole } from "../domain/mfi-membership"
+import type { CommunityMembership } from "../types"
 import type { CommunityRepository } from "./community.repository"
 
-/** Backend response shape; mapped to the domain membership here so DTOs never reach the UI. */
-interface CommunityDTO {
-  organization_id: string
+/** `GET /communities` payload item, after the client unwraps `{ success, data }`. */
+interface MfiCommunityDTO {
+  communityId: string
   name: string
-  type: string
-  country: string
-  legal_name?: string | null
-  primary_color?: string | null
-  logo_url?: string | null
-  role_id: string
-  role_name: string
-  scope: "organization" | "branch"
-  branch_ids?: string[]
-  is_owner: boolean
-}
-
-function mapMembership(dto: CommunityDTO): CommunityMembership {
-  return {
-    organizationId: dto.organization_id,
-    name: dto.name,
-    type: dto.type,
-    country: dto.country,
-    logo: dto.logo_url ?? "",
-    legalName: dto.legal_name ?? "",
-    accent: dto.primary_color ?? "blue",
-    roleId: dto.role_id,
-    roleName: dto.role_name,
-    scope: dto.scope,
-    branchIds: dto.branch_ids,
-    isOwner: dto.is_owner,
-  }
+  logo: string | null
+  color?: string | null
+  description: string | null
+  mfiRole: MfiRole
 }
 
 /**
- * API-backed repository. The backend resolves the communities from the authenticated session — a
- * client-supplied identity here would be a way to ask for someone else's — and creating one must make
- * the caller its owner in the same transaction that creates the tenant.
+ * API-backed repository, wired to the MFI backend's `GET /communities`.
+ *
+ * The backend resolves the institutions from the authenticated session. Creating an institution is
+ * not exposed to staff — onboarding is a super-admin operation on the backend.
  */
 export class ApiCommunityRepository implements CommunityRepository {
   async list(): Promise<CommunityMembership[]> {
-    const response = await apiClient.get<{ items: CommunityDTO[] }>(endpoints.organizations.list)
-    return response.items.map(mapMembership)
+    const response = await apiClient.get<MfiCommunityDTO[]>(endpoints.organizations.list)
+    return response.map((community) =>
+      mapMfiMembership(
+        { id: community.communityId, ...community },
+        community.mfiRole,
+      ),
+    )
   }
 
-  async create(input: CreateCommunityInput): Promise<CommunityMembership> {
-    return mapMembership(
-      await apiClient.post<CommunityDTO>(endpoints.organizations.create, {
-        name: input.name,
-        type: input.type,
-        legal_name: input.legalName,
-        country: input.country,
-        logo_url: input.logo || null,
-        primary_color: input.accent,
-      }),
+  async create(): Promise<CommunityMembership> {
+    throw new ApiError(
+      "Creating an institution is not available on the backend yet. Contact FinSquare to onboard a new institution.",
+      "not_found",
     )
   }
 }

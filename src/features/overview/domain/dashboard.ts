@@ -1,7 +1,7 @@
 import type { View } from "@/types"
 
 export interface Metric {
-  id: "members" | "groups" | "contributions" | "dues" | "loans" | "approvals"
+  id: "customers" | "active-loans" | "pending-applications" | "disbursed" | "repaid" | "overdue"
   label: string
   value: string
   detail: string
@@ -9,7 +9,7 @@ export interface Metric {
   target: View
 }
 
-/** One thing waiting on an administrator, with the page that owns the work. */
+/** One thing waiting on a staff member, with the page that owns the work. */
 export interface DashboardAttentionItem {
   id: string
   label: string
@@ -17,72 +17,96 @@ export interface DashboardAttentionItem {
   target: View
 }
 
-/** Everything the dashboard needs. All of it comes from records; none of it is written by hand. */
+/** The latest customers, shown in the overview's recent-activity panel. */
+export interface DashboardCustomer {
+  id: string
+  name: string
+  status: string
+  joinedAt: string
+}
+
+/** The resolved dashboard state a page renders, whichever source produced it. */
+export interface DashboardData {
+  status: "loading" | "success" | "error"
+  error: string | null
+  retry: () => void
+  metrics: Metric[]
+  attention: DashboardAttentionItem[]
+  latestCustomers: DashboardCustomer[]
+  hasNoRecords: boolean
+  eyebrow: string
+  greeting: string
+}
+
+/** Everything the MFI dashboard needs. All of it comes from records; none of it is written by hand. */
 export interface DashboardInput {
-  memberCount: number
-  membersAwaitingApproval: number
-  groupCount: number
-  branchCount: number
-  activeContributions: number
-  contributionCollected: string
-  duesOutstanding: string
-  membersWithArrears: number
-  loanApplications: number
-  loanApplicationsAwaitingReview: number
+  customerCount: number
+  customersAwaitingApproval: number
+  activeLoans: number
+  overdueLoans: number
+  totalApplications: number
+  pendingApplications: number
+  totalDisbursed: number
+  totalRepaid: number
+  repaymentRate: number
+  activeEsusu: number
+  esusuCollected: number
   walletApprovalsPending: number
-  administratorsAwaitingSetup: number
-  applicationsAwaitingReview: number
-  corporateAccountConnected: boolean
-  complianceDocumentsOutstanding: number
+  staffAwaitingSetup: number
+  walletConnected: boolean
+  latestCustomers: DashboardCustomer[]
+}
+
+/** Naira amounts are formatted once, here, so the cards always agree. */
+export function formatNaira(amount: number): string {
+  return `₦${Math.round(amount).toLocaleString("en-NG")}`
 }
 
 export function dashboardMetrics(input: DashboardInput): Metric[] {
   return [
     {
-      id: "members",
-      label: "Members",
-      value: input.memberCount.toLocaleString(),
-      detail: input.membersAwaitingApproval
-        ? `${input.membersAwaitingApproval.toLocaleString()} awaiting approval`
+      id: "customers",
+      label: "Customers",
+      value: input.customerCount.toLocaleString(),
+      detail: input.customersAwaitingApproval
+        ? `${input.customersAwaitingApproval.toLocaleString()} awaiting approval`
         : "None awaiting approval",
       target: "members",
     },
     {
-      id: "groups",
-      label: "Groups",
-      value: input.groupCount.toLocaleString(),
-      detail: `Across ${input.branchCount.toLocaleString()} ${input.branchCount === 1 ? "branch" : "branches"}`,
-      target: "groups",
+      id: "active-loans",
+      label: "Active loans",
+      value: input.activeLoans.toLocaleString(),
+      detail: `${input.overdueLoans.toLocaleString()} overdue`,
+      target: "loan-active",
     },
     {
-      id: "contributions",
-      label: "Contributions",
-      value: input.activeContributions.toLocaleString(),
-      detail: `${input.contributionCollected} collected`,
-      target: "contributions",
-    },
-    {
-      id: "dues",
-      label: "Outstanding dues",
-      value: input.duesOutstanding,
-      detail: input.membersWithArrears
-        ? `${input.membersWithArrears.toLocaleString()} members`
-        : "Nothing outstanding",
-      target: "dues",
-    },
-    {
-      id: "loans",
-      label: "Loan applications",
-      value: input.loanApplications.toLocaleString(),
-      detail: `${input.loanApplicationsAwaitingReview.toLocaleString()} awaiting review`,
+      id: "pending-applications",
+      label: "Pending applications",
+      value: input.pendingApplications.toLocaleString(),
+      detail: `${input.totalApplications.toLocaleString()} total applications`,
       target: "loan-applications",
     },
     {
-      id: "approvals",
-      label: "Pending approvals",
-      value: input.walletApprovalsPending.toLocaleString(),
-      detail: "Waiting on the wallet",
-      target: "wallet",
+      id: "disbursed",
+      label: "Disbursed",
+      value: formatNaira(input.totalDisbursed),
+      detail: `${input.repaymentRate}% repaid`,
+      target: "loan-disbursements",
+    },
+    {
+      id: "repaid",
+      label: "Repaid",
+      value: formatNaira(input.totalRepaid),
+      detail: "of disbursed recovered",
+      target: "loan-repayments",
+    },
+    {
+      id: "overdue",
+      label: "Overdue loans",
+      value: input.overdueLoans.toLocaleString(),
+      detail: "loans in default",
+      target: "loan-recovery",
     },
   ]
 }
@@ -95,51 +119,47 @@ export function dashboardMetrics(input: DashboardInput): Metric[] {
 export function attentionItems(input: DashboardInput): DashboardAttentionItem[] {
   const items: DashboardAttentionItem[] = []
 
-  const awaiting = input.membersAwaitingApproval + input.applicationsAwaitingReview
-  if (awaiting) {
+  if (input.customersAwaitingApproval) {
     items.push({
-      id: "members",
-      label: `${awaiting.toLocaleString()} ${awaiting === 1 ? "person is" : "people are"} waiting on approval`,
+      id: "customers",
+      label: `${input.customersAwaitingApproval.toLocaleString()} ${input.customersAwaitingApproval === 1 ? "person is" : "people are"} waiting on approval`,
       category: "Membership",
-      target: input.applicationsAwaitingReview ? "member-applications" : "members",
+      target: "members",
+    })
+  }
+  if (input.pendingApplications) {
+    items.push({
+      id: "loans",
+      label: `${input.pendingApplications.toLocaleString()} loan ${input.pendingApplications === 1 ? "application is" : "applications are"} awaiting review`,
+      category: "Credit",
+      target: "loan-applications",
     })
   }
   if (input.walletApprovalsPending) {
     items.push({
       id: "wallet",
-      label: `${input.walletApprovalsPending.toLocaleString()} wallet ${input.walletApprovalsPending === 1 ? "approval" : "approvals"} pending`,
+      label: `${input.walletApprovalsPending.toLocaleString()} wallet withdrawal ${input.walletApprovalsPending === 1 ? "approval" : "approvals"} pending`,
       category: "Finance",
       target: "wallet",
     })
   }
-  if (input.administratorsAwaitingSetup) {
+  if (input.staffAwaitingSetup) {
     items.push({
-      id: "administrators",
+      id: "staff",
       label:
-        input.administratorsAwaitingSetup === 1
-          ? "1 administrator hasn’t completed setup"
-          : `${input.administratorsAwaitingSetup} administrators haven’t completed setup`,
+        input.staffAwaitingSetup === 1
+          ? "1 staff member hasn’t completed setup"
+          : `${input.staffAwaitingSetup} staff members haven’t completed setup`,
       category: "Access",
       target: "administrators",
     })
   }
-  if (!input.corporateAccountConnected) {
+  if (!input.walletConnected) {
     items.push({
       id: "corporate",
-      label: "Corporate account not connected",
+      label: "Corporate wallet not connected",
       category: "Financial setup",
       target: "corporate",
-    })
-  }
-  if (input.complianceDocumentsOutstanding) {
-    items.push({
-      id: "compliance",
-      label:
-        input.complianceDocumentsOutstanding === 1
-          ? "1 compliance document is outstanding"
-          : `${input.complianceDocumentsOutstanding} compliance documents are outstanding`,
-      category: "Compliance",
-      target: "compliance",
     })
   }
 
@@ -149,11 +169,10 @@ export function attentionItems(input: DashboardInput): DashboardAttentionItem[] 
 /** A community with nothing in it gets a get-started panel instead of six cards reading zero. */
 export function isEmptyCommunity(input: DashboardInput): boolean {
   return (
-    input.memberCount === 0 &&
-    input.groupCount === 0 &&
-    input.branchCount === 0 &&
-    input.activeContributions === 0 &&
-    input.loanApplications === 0
+    input.customerCount === 0 &&
+    input.activeLoans === 0 &&
+    input.totalApplications === 0 &&
+    input.activeEsusu === 0
   )
 }
 

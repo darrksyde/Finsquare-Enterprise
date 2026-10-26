@@ -1,4 +1,10 @@
-import type { ApplicationType, FormResponse, LoanApplicationForm } from "./form.types"
+import type {
+  ApplicationType,
+  FormResponse,
+  FormResponseValue,
+  FormVersion,
+  LoanApplicationForm,
+} from "./form.types"
 export type InterestType = "Flat" | "Reducing balance" | "Zero interest"
 export type DurationUnit = "Days" | "Weeks" | "Months"
 export type RepaymentFrequency = "Daily" | "Weekly" | "Biweekly" | "Monthly"
@@ -326,6 +332,43 @@ export interface LoanSummary {
   startDate: string
   endDate: string
   schedule: RepaymentScheduleItem[]
+}
+
+/** What a caller supplies when creating an application on behalf of a borrower. */
+export interface NewApplicationInput {
+  applicant: Borrower
+  product: LoanProduct
+  terms: LoanTerms
+  purpose: string
+  employment: string
+  monthlyIncome: number
+  source: LoanApplication["source"]
+  status?: ApplicationStatus
+  guarantors?: { guarantor: Guarantor; amount: number }[]
+  documents?: string[]
+  response?: { form: LoanApplicationForm; version: FormVersion; values: Record<string, FormResponseValue> }
+}
+
+/** An applicant's answers submitted against a specific form version. */
+export interface SubmitFormApplicationInput {
+  form: LoanApplicationForm
+  version: FormVersion
+  product: LoanProduct
+  values: Record<string, FormResponseValue>
+  members: Borrower[]
+  source: "Internal" | "Public link"
+}
+
+/** What a caller supplies when recording a manual repayment. */
+export interface RecordRepaymentInput {
+  loanId: string
+  amount: number
+  method: RepaymentMethod
+  date: string
+  reference: string
+  note?: string
+  /** Staff wallet transaction PIN; required when recording against the live backend. */
+  pin?: string
 }
 
 export type { ApplicationType, FormResponse, LoanApplicationForm }

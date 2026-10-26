@@ -1,5 +1,5 @@
 import type { AuthRepository } from "./auth.repository"
-import type { AuthResult, SignInCredentials } from "../types"
+import type { AuthOutcome, SignInCredentials } from "../types"
 
 /** `ada.okoye@example.com` → `Ada Okoye`, so a returning user still sees a sensible name. */
 export function nameFromEmail(email: string): string {
@@ -19,16 +19,25 @@ export function nameFromEmail(email: string): string {
  * `ApiAuthRepository`, is the real boundary and must reject bad credentials.
  */
 export class MockAuthRepository implements AuthRepository {
-  async signIn({ email }: SignInCredentials): Promise<AuthResult> {
+  async signIn({ email }: SignInCredentials): Promise<AuthOutcome> {
     const normalized = email.trim()
     return {
-      session: {
-        email: normalized,
-        name: nameFromEmail(normalized) || normalized,
-        signedInAt: new Date().toISOString(),
+      status: "signed-in",
+      result: {
+        session: {
+          email: normalized,
+          name: nameFromEmail(normalized) || normalized,
+          signedInAt: new Date().toISOString(),
+        },
+        accessToken: "mock-access-token",
+        // The mock has no account store; the communities come from `useCommunities`, not from login.
+        memberships: [],
       },
-      accessToken: "mock-access-token",
     }
+  }
+
+  async changePassword(): Promise<void> {
+    // No account store to update; the forced-change gate never appears in mock mode.
   }
 
   async signOut(): Promise<void> {

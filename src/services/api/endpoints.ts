@@ -1,12 +1,43 @@
 export const endpoints = {
   auth: {
     login: "/auth/login",
-    logout: "/auth/logout",
+    changePassword: "/auth/change-password",
+    // No logout endpoint exists on the MFI backend: the JWT is stateless, so sign-out is client-side only.
   },
-  /** The communities the authenticated administrator belongs to; the tenant comes from the session. */
+  /** MFI portfolio statistics backing the overview dashboard. */
+  dashboard: "/dashboard",
+  /** The communities the authenticated staff belongs to; the tenant comes from the session. */
   organizations: {
-    list: "/organizations",
+    list: "/communities",
     create: "/organizations",
+  },
+  loans: {
+    types: "/loans/types",
+    type: (loanTypeId: string) => `/loans/types/${loanTypeId}`,
+    typeForm: (loanTypeId: string) => `/loans/types/${loanTypeId}/form`,
+    applications: "/loans",
+    approve: (applicationId: string) => `/loans/${applicationId}/approve`,
+    reject: (applicationId: string) => `/loans/${applicationId}/reject`,
+    reapply: (applicationId: string) => `/loans/${applicationId}/reapply`,
+    requestInfo: (applicationId: string) => `/loans/${applicationId}/request-info`,
+    cancel: (applicationId: string) => `/loans/${applicationId}/cancel`,
+    offer: (applicationId: string) => `/loans/${applicationId}/offer`,
+    acceptOffer: (applicationId: string) => `/loans/${applicationId}/offer/accept`,
+    create: "/loans",
+    disburse: (applicationId: string) => `/loans/${applicationId}/disburse`,
+    batchDisburse: "/loans/batch-disburse",
+    verifyGuarantor: (applicationId: string, guarantorId: string) =>
+      `/loans/${applicationId}/guarantors/${guarantorId}/verify`,
+    activeLoans: "/active-loans",
+    repayments: "/repayments",
+    repay: (loanId: string) => `/active-loans/${loanId}/repay`,
+    disbursementLogs: "/loans/disbursement-logs",
+    enterpriseLoans: "/enterprise/loans",
+    startRecovery: (loanId: string) => `/active-loans/${loanId}/recovery`,
+    recoveryActions: (caseId: string) => `/loans/recovery/${caseId}/actions`,
+    markDefaulted: (loanId: string) => `/active-loans/${loanId}/mark-defaulted`,
+    writeOff: (loanId: string) => `/active-loans/${loanId}/write-off`,
+    recoverySettings: "/loans/recovery/settings",
   },
   members: {
     list: (organizationId: string) =>

@@ -1,4 +1,4 @@
-import type { AuthResult, SignInCredentials } from "../types"
+import type { AuthOutcome, SignInCredentials } from "../types"
 
 /**
  * Authentication boundary.
@@ -8,6 +8,8 @@ import type { AuthResult, SignInCredentials } from "../types"
  * decides who someone is.
  */
 export interface AuthRepository {
-  signIn(credentials: SignInCredentials): Promise<AuthResult>
+  signIn(credentials: SignInCredentials): Promise<AuthOutcome>
   signOut(): Promise<void>
+  /** Sets a new password for the signed-in staff member; used by the forced-change gate. */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>
 }

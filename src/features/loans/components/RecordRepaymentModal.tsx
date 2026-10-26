@@ -13,13 +13,15 @@ export function RecordRepaymentModal({ ctx, loanId, onClose }: { ctx: LoanCtx; l
   const [date, setDate] = useState(todayISO())
   const [reference, setReference] = useState("")
   const [note, setNote] = useState("")
+  const [pin, setPin] = useState("")
   const preview = loan && amount > 0 ? allocateRepayment(loan.schedule, amount) : null
   const label = (l: (typeof open)[number]) => `${l.reference} · ${l.borrower.name}`
   const over = loan && amount > loan.outstanding
+  const pinValid = pin.trim().length === 4
   return (
-    <ActionModal title="Record repayment" onClose={onClose} submitLabel="Record repayment" disabled={!loan || !(amount > 0) || !!over}
+    <ActionModal title="Record repayment" onClose={onClose} submitLabel="Record repayment" disabled={!loan || !(amount > 0) || !!over || !pinValid}
       onSubmit={async () => {
-        await ctx.service.recordRepayment({ loanId: id, amount, method, date, reference, note })
+        await ctx.service.recordRepayment({ loanId: id, amount, method, date, reference, note, pin: pin.trim() })
         ctx.notify(`${money(amount)} allocated to ${loan?.reference}`)
       }}>
       <div className="form-grid">
@@ -28,6 +30,7 @@ export function RecordRepaymentModal({ ctx, loanId, onClose }: { ctx: LoanCtx; l
         <SelectField label="Method" value={method} options={["Bank transfer", "Wallet debit", "Cash", "Direct debit", "POS/manual"]} onChange={(v) => setMethod(v as RepaymentMethod)} />
         <Field label="Payment date" type="date" value={date} onChange={setDate} />
         <Field label="Reference (optional)" value={reference} onChange={setReference} />
+        <Field label="Wallet PIN" type="password" value={pin} placeholder="4-digit transaction PIN" onChange={setPin} />
         <TextArea label="Note" value={note} onChange={setNote} />
       </div>
       {loan && (

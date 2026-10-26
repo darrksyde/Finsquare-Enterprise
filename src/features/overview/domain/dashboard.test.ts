@@ -3,48 +3,59 @@ import {
   attentionItems,
   dashboardMetrics,
   eyebrowFor,
+  formatNaira,
   greetingFor,
   isEmptyCommunity,
   type DashboardInput,
 } from "./dashboard"
 
 const input = (over: Partial<DashboardInput> = {}): DashboardInput => ({
-  memberCount: 0,
-  membersAwaitingApproval: 0,
-  groupCount: 0,
-  branchCount: 0,
-  activeContributions: 0,
-  contributionCollected: "₦0",
-  duesOutstanding: "₦0",
-  membersWithArrears: 0,
-  loanApplications: 0,
-  loanApplicationsAwaitingReview: 0,
+  customerCount: 0,
+  customersAwaitingApproval: 0,
+  activeLoans: 0,
+  overdueLoans: 0,
+  totalApplications: 0,
+  pendingApplications: 0,
+  totalDisbursed: 0,
+  totalRepaid: 0,
+  repaymentRate: 0,
+  activeEsusu: 0,
+  esusuCollected: 0,
   walletApprovalsPending: 0,
-  administratorsAwaitingSetup: 0,
-  applicationsAwaitingReview: 0,
-  corporateAccountConnected: true,
-  complianceDocumentsOutstanding: 0,
+  staffAwaitingSetup: 0,
+  walletConnected: true,
+  latestCustomers: [],
   ...over,
 })
 
 describe("dashboard metrics", () => {
-  it("counts what the community actually has", () => {
-    const metrics = dashboardMetrics(input({ memberCount: 8, groupCount: 3, branchCount: 2, activeContributions: 1 }))
+  it("counts what the MFI actually has", () => {
+    const metrics = dashboardMetrics(
+      input({ customerCount: 8, activeLoans: 5, overdueLoans: 2, pendingApplications: 3, totalApplications: 12 }),
+    )
     const byId = Object.fromEntries(metrics.map((metric) => [metric.id, metric]))
 
-    expect(byId.members.value).toBe("8")
-    expect(byId.groups.value).toBe("3")
-    expect(byId.groups.detail).toBe("Across 2 branches")
-    expect(byId.contributions.value).toBe("1")
+    expect(byId.customers.value).toBe("8")
+    expect(byId["active-loans"].value).toBe("5")
+    expect(byId["active-loans"].detail).toBe("2 overdue")
+    expect(byId["pending-applications"].detail).toBe("12 total applications")
   })
 
   it("says so when nothing is waiting rather than inventing a queue", () => {
     const metrics = dashboardMetrics(input())
     const byId = Object.fromEntries(metrics.map((metric) => [metric.id, metric]))
 
-    expect(byId.members.detail).toBe("None awaiting approval")
-    expect(byId.dues.detail).toBe("Nothing outstanding")
-    expect(byId.members.value).toBe("0")
+    expect(byId.customers.detail).toBe("None awaiting approval")
+    expect(byId.customers.value).toBe("0")
+  })
+
+  it("formats money amounts for the disbursed and repaid cards", () => {
+    const metrics = dashboardMetrics(input({ totalDisbursed: 1250000, totalRepaid: 750000, repaymentRate: 60 }))
+    const byId = Object.fromEntries(metrics.map((metric) => [metric.id, metric]))
+
+    expect(byId.disbursed.value).toBe(formatNaira(1250000))
+    expect(byId.disbursed.detail).toBe("60% repaid")
+    expect(byId.repaid.value).toBe(formatNaira(750000))
   })
 
   it("leads every card somewhere", () => {
@@ -60,39 +71,36 @@ describe("attention items", () => {
   })
 
   it("raises only the items a record backs", () => {
-    const items = attentionItems(
-      input({ membersAwaitingApproval: 2, applicationsAwaitingReview: 3, corporateAccountConnected: false }),
-    )
+    const items = attentionItems(input({ customersAwaitingApproval: 2, walletConnected: false }))
 
-    expect(items.map((item) => item.id)).toEqual(["members", "corporate"])
-    expect(items[0].label).toBe("5 people are waiting on approval")
-    expect(items[0].target).toBe("member-applications")
-    expect(items[1].label).toBe("Corporate account not connected")
+    expect(items.map((item) => item.id)).toEqual(["customers", "corporate"])
+    expect(items[0].label).toBe("2 people are waiting on approval")
+    expect(items[0].target).toBe("members")
+    expect(items[1].label).toBe("Corporate wallet not connected")
   })
 
-  it("counts an unconnected corporate account and outstanding compliance once each", () => {
-    const items = attentionItems(
-      input({ corporateAccountConnected: false, complianceDocumentsOutstanding: 4, walletApprovalsPending: 1 }),
-    )
+  it("counts an unconnected wallet and pending withdrawals once each", () => {
+    const items = attentionItems(input({ walletConnected: false, walletApprovalsPending: 3 }))
 
-    expect(items).toHaveLength(3)
-    expect(items.find((item) => item.id === "compliance")?.label).toBe("4 compliance documents are outstanding")
-    expect(items.find((item) => item.id === "wallet")?.label).toBe("1 wallet approval pending")
+    expect(items).toHaveLength(2)
+    expect(items.find((item) => item.id === "wallet")?.label).toBe("3 wallet withdrawal approvals pending")
+    expect(items.find((item) => item.id === "corporate")?.label).toBe("Corporate wallet not connected")
   })
 
   it("reads a single record in the singular", () => {
-    const items = attentionItems(input({ administratorsAwaitingSetup: 1, applicationsAwaitingReview: 1 }))
+    const items = attentionItems(input({ staffAwaitingSetup: 1, pendingApplications: 1 }))
 
-    expect(items.find((item) => item.id === "administrators")?.label).toBe("1 administrator hasn’t completed setup")
-    expect(items.find((item) => item.id === "members")?.label).toBe("1 person is waiting on approval")
+    expect(items.find((item) => item.id === "staff")?.label).toBe("1 staff member hasn’t completed setup")
+    expect(items.find((item) => item.id === "loans")?.label).toBe("1 loan application is awaiting review")
   })
 })
 
 describe("an empty community", () => {
   it("is the one with no records at all", () => {
     expect(isEmptyCommunity(input())).toBe(true)
-    expect(isEmptyCommunity(input({ branchCount: 1 }))).toBe(false)
-    expect(isEmptyCommunity(input({ loanApplications: 2 }))).toBe(false)
+    expect(isEmptyCommunity(input({ activeLoans: 1 }))).toBe(false)
+    expect(isEmptyCommunity(input({ totalApplications: 2 }))).toBe(false)
+    expect(isEmptyCommunity(input({ activeEsusu: 1 }))).toBe(false)
   })
 })
 
