@@ -1,6 +1,7 @@
 import { emptyCorporateDetails, type AdminAccount, type CorporateAccountDetails } from "@/features/onboarding/types"
 import type { CommunityMembership } from "@/features/communities/types"
 import type { Session } from "@/features/auth/types"
+import { env } from "@/app/config/env"
 import { DEFAULT_ENABLED_MODULES } from "@/app/config/module-registry"
 import { complianceDocumentsMock } from "@/features/compliance/mocks/compliance.mock"
 import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
@@ -253,20 +254,24 @@ function migrateLegacyWorkspace(theme: ThemePreference, storage: WorkspaceStorag
   }>(LEGACY_ONBOARDING_KEY, storage)
   const legacyAccent = storage.getItem(LEGACY_ACCENT_KEY)
 
+  // A real (non-mock) install starts empty: the self-service onboarding form must not show the
+  // demo "Lagos Farmers Cooperative" seed. The seed only appears when mocks are enabled.
+  const seedBase = env.VITE_ENABLE_MOCKS ? seedOrganization : emptyOrganization
+
   const slice = sliceFromMembership({
     organizationId: SEED_ORGANIZATION_ID,
-    name: seedOrganization.name,
-    type: seedOrganization.type,
+    name: seedBase.name,
+    type: seedBase.type,
     logo: legacyOrganization?.logo ?? "",
-    country: seedOrganization.country,
-    legalName: seedOrganization.legalName,
+    country: seedBase.country,
+    legalName: seedBase.legalName,
     accent: legacyAccent ?? "blue",
     roleId: "role-super-admin",
     roleName: "Super Admin",
     scope: "organization",
     isOwner: true,
   })
-  slice.organization = { ...seedOrganization, ...(legacyOrganization ?? {}) }
+  slice.organization = { ...seedBase, ...(legacyOrganization ?? {}) }
   slice.accent = legacyAccent ?? "blue"
   slice.corporateAccountStatus = legacyOnboarding?.corporateStatus ?? "Not connected"
   if (legacyOnboarding?.corporateDetails) slice.corporateDetails = legacyOnboarding.corporateDetails
