@@ -338,6 +338,7 @@ export type WorkspaceAction =
   | { type: "corporate-account/status-changed"; value: CorporateAccountStatus }
   | { type: "corporate-account/details-saved"; value: CorporateAccountDetails }
   | { type: "compliance/document-updated"; index: number; value: ComplianceDocumentStatus }
+  | { type: "compliance/synced"; value: ComplianceDocumentStatus[] }
   | { type: "onboarding/completed" }
   | { type: "onboarding/restarted" }
   | { type: "onboarding/admin-saved"; value: AdminAccount }
@@ -445,6 +446,11 @@ export function workspaceReducer(state: WorkspaceStore, action: WorkspaceAction)
         complianceDocuments: community.complianceDocuments.map((document, index) =>
           index === action.index ? action.value : document,
         ),
+      }))
+    case "compliance/synced":
+      return patchActive(state, (community) => ({
+        ...community,
+        complianceDocuments: action.value,
       }))
     case "onboarding/completed":
       // Finishing sign-up signs the new administrator in.

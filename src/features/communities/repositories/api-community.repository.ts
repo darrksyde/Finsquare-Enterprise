@@ -1,6 +1,6 @@
-import { ApiError, apiClient, endpoints } from "@/services/api"
+import { apiClient, endpoints } from "@/services/api"
 import { mapMfiMembership, type MfiRole } from "../domain/mfi-membership"
-import type { CommunityMembership } from "../types"
+import type { CommunityMembership, CreateCommunityInput } from "../types"
 import type { CommunityRepository } from "./community.repository"
 
 /** `GET /communities` payload item, after the client unwraps `{ success, data }`. */
@@ -11,13 +11,14 @@ interface MfiCommunityDTO {
   color?: string | null
   description: string | null
   mfiRole: MfiRole
+  details?: { profile?: Record<string, unknown> } | null
 }
 
 /**
- * API-backed repository, wired to the MFI backend's `GET /communities`.
+ * API-backed repository, wired to the MFI backend's `GET /communities` and `POST /communities`.
  *
- * The backend resolves the institutions from the authenticated session. Creating an institution is
- * not exposed to staff — onboarding is a super-admin operation on the backend.
+ * The backend resolves the institutions from the authenticated session; creating one makes the
+ * authenticated staff member its owner.
  */
 export class ApiCommunityRepository implements CommunityRepository {
   async list(): Promise<CommunityMembership[]> {
@@ -30,10 +31,18 @@ export class ApiCommunityRepository implements CommunityRepository {
     )
   }
 
-  async create(): Promise<CommunityMembership> {
-    throw new ApiError(
-      "Creating an institution is not available on the backend yet. Contact FinSquare to onboard a new institution.",
-      "not_found",
+  async create(input: CreateCommunityInput): Promise<CommunityMembership> {
+    const response = await apiClient.post<MfiCommunityDTO>(endpoints.organizations.create, {
+      name: input.name,
+      type: input.type,
+      legalName: input.legalName,
+      country: input.country,
+      logo: input.logo,
+      color: input.accent,
+    })
+    return mapMfiMembership(
+      { id: response.communityId, ...response },
+      response.mfiRole,
     )
   }
 }

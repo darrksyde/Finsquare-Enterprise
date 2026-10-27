@@ -1,11 +1,12 @@
-import type { CorporateAccountApplication } from "@/types"
+import type { CorporateAccountStatus } from "@/types"
+import type { CorporateAccountDetails } from "@/features/onboarding/types"
+
+export interface CorporateAccountState {
+  status: CorporateAccountStatus
+  details: CorporateAccountDetails
+}
 
 export interface CorporateAccountRepository {
-  getApplication(
-    organizationId: string,
-  ): Promise<CorporateAccountApplication | null>
-  submitApplication(
-    organizationId: string,
-    input: Omit<CorporateAccountApplication, "id" | "organizationId" | "status">,
-  ): Promise<CorporateAccountApplication>
+  get(organizationId: string): Promise<CorporateAccountState>
+  update(organizationId: string, state: CorporateAccountState): Promise<void>
 }

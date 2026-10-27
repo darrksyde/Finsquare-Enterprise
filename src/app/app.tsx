@@ -42,6 +42,8 @@ import Breadcrumbs from "@/components/navigation/Breadcrumbs"
 import SettingsTabs from "@/features/settings/components/SettingsTabs"
 import { settingsTabFor } from "@/app/config/navigation"
 import { CompliancePage, CorporatePage } from "@/features/compliance/components/CompliancePages"
+import { useCompliance } from "@/features/compliance/hooks/useCompliance"
+import { useCorporateAccount } from "@/features/corporate-account/hooks/useCorporateAccount"
 import { DuesCreatePage, DuesDetailPage, DuesOverviewPage } from "@/features/dues"
 import {
   ContributionCreatePage,
@@ -64,7 +66,6 @@ import { StructurePage } from "@/features/organization/components/StructurePage"
 import { Dashboard } from "@/features/overview/OverviewPage"
 import { GenericPage, SettingsPage } from "@/features/settings/components/SettingsPages"
 import { WorkflowsPage } from "@/features/workflows/components/BuilderPages"
-import type { CorporateAccountStatus } from "@/types"
 import { CommunicationsPage } from "@/features/communications"
 
 const GroupsPage = lazy(() =>
@@ -110,6 +111,8 @@ export default function FinSquareApp() {
   const { view, entityId, navigate } = useAppRoute()
   const { can } = useAuthorization()
   const { signOut } = useAuth()
+  const { setStatus: setComplianceStatus } = useCompliance(state.activeCommunityId)
+  const { saveDetails: saveCorporateDetails, setStatus: setCorporateStatus } = useCorporateAccount(state.activeCommunityId)
   const { pathname } = useLocation()
   // The communities belong to whoever is signed in, so they are only asked for once there is a session.
   const { communities } = useCommunities(Boolean(state.session))
@@ -314,11 +317,7 @@ export default function FinSquareApp() {
       <CompliancePage
         docs={state.complianceDocuments}
         updateDoc={(index, status) => {
-          dispatch({
-            type: "compliance/document-updated",
-            index,
-            value: status,
-          })
+          void setComplianceStatus(index, status)
           notify(status === "Approved" ? "Document approved" : "Document ready to replace")
         }}
       />
@@ -336,14 +335,9 @@ export default function FinSquareApp() {
           repEmail: state.corporateDetails.repEmail || state.admin.email,
           repPhone: state.corporateDetails.repPhone || state.admin.phone,
         }}
-        saveDetails={(value) => dispatch({ type: "corporate-account/details-saved", value })}
+        saveDetails={saveCorporateDetails}
         status={state.corporateAccountStatus}
-        setStatus={(status: CorporateAccountStatus) =>
-          dispatch({
-            type: "corporate-account/status-changed",
-            value: status,
-          })
-        }
+        setStatus={setCorporateStatus}
         notify={notify}
       />
     )

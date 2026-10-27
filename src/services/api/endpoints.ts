@@ -10,7 +10,7 @@ export const endpoints = {
   /** The communities the authenticated staff belongs to; the tenant comes from the session. */
   organizations: {
     list: "/communities",
-    create: "/organizations",
+    create: "/communities",
   },
   loans: {
     types: "/loans/types",
@@ -68,19 +68,20 @@ export const endpoints = {
     activate: (branchId: string) => `/branches/${branchId}/activate`,
   },
   administrators: {
-    list: (organizationId: string) =>
-      `/organizations/${organizationId}/administrators`,
-    detail: (organizationId: string, administratorId: string) =>
-      `/organizations/${organizationId}/administrators/${administratorId}`,
-    roles: (organizationId: string) => `/organizations/${organizationId}/roles`,
+    list: "/staff",
+    detail: (staffId: string) => `/staff/${staffId}`,
+    invite: "/staff/invite",
+    resendInvite: (staffId: string) => `/staff/${staffId}/resend-invite`,
+    suspend: (staffId: string) => `/staff/${staffId}/suspend`,
+    reactivate: (staffId: string) => `/staff/${staffId}/reactivate`,
+    deactivate: (staffId: string) => `/staff/${staffId}/deactivate`,
+    role: (staffId: string) => `/staff/${staffId}/role`,
   },
   compliance: {
-    case: (organizationId: string) =>
-      `/organizations/${organizationId}/compliance`,
+    statuses: "/compliance",
   },
   corporateAccount: {
-    application: (organizationId: string) =>
-      `/organizations/${organizationId}/corporate-account`,
+    account: "/corporate-account",
   },
   contributions: {
     list: (organizationId: string) =>
@@ -113,11 +114,8 @@ export const endpoints = {
       `/organizations/${organizationId}/dues/commands`,
   },
   communications: {
-    workspace: (organizationId: string) =>
-      `/organizations/${organizationId}/communications`,
-    /** Transactional batch used by the mock-shaped repository; production should expose named commands. */
-    commands: (organizationId: string) =>
-      `/organizations/${organizationId}/communications/commands`,
+    workspace: "/enterprise/communications",
+    commands: "/enterprise/communications",
   },
   forms: {
     /** The shared question library: one library per organization, used by every form builder. */

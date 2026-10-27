@@ -3,22 +3,19 @@ import type { CommunicationDataset } from "../types/message.types"
 import type { CommunicationRepository } from "./communication.repository"
 
 /**
- * API-backed repository.
+ * API-backed repository, wired to the MFI backend's enterprise messaging dataset endpoint.
  *
- * `load` maps to a single read; `commit` posts a transactional batch so the frontend can keep the
- * same repository shape while the mock is in place. When the backend lands, prefer named command
- * endpoints (send message, top up balance) over the batch — the service documents the exact
- * command each mutation represents. **The backend must own the SMS balance**: it re-checks the
- * price, recomputes the cost, refuses an unaffordable send and deducts the balance in the same
- * transaction that records the message.
+ * `load` reads the persisted dataset; `commit` posts the full dataset so the frontend keeps the
+ * same repository shape while the mock is in place. The backend owns the stored history, balance
+ * and top-ups; the SMS provider integration stays a backend concern.
  */
 export class ApiCommunicationRepository implements CommunicationRepository {
-  async load(organizationId: string): Promise<CommunicationDataset> {
-    return apiClient.get<CommunicationDataset>(endpoints.communications.workspace(organizationId))
+  async load(): Promise<CommunicationDataset> {
+    return apiClient.get<CommunicationDataset>(endpoints.communications.workspace)
   }
 
-  async commit(organizationId: string, next: Partial<CommunicationDataset>): Promise<void> {
-    await apiClient.post(endpoints.communications.commands(organizationId), next)
+  async commit(_organizationId: string, next: Partial<CommunicationDataset>): Promise<void> {
+    await apiClient.post(endpoints.communications.commands, next)
   }
 
   subscribe(): () => void {

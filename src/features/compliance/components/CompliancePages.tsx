@@ -4,12 +4,10 @@ import {
   BadgeCheck,
   Check,
   Download,
-  FileCheck2,
   FileText,
-  Landmark,
   Upload,
 } from "@/icons"
-import { Button, SelectField, Badge, SectionHeader } from "@/components/ui"
+import { Button, Badge, SectionHeader } from "@/components/ui"
 import type { CSSProperties } from "react"
 import type {
   ComplianceDocumentStatus as DocStatus,

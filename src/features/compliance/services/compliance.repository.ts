@@ -1,15 +1,10 @@
-import type { ComplianceCase, ComplianceDocument } from "@/types"
+import type { ComplianceDocumentStatus } from "@/types"
 
+/** Contract for the compliance checklist's mutable state: the per-document statuses. */
 export interface ComplianceRepository {
-  getCase(organizationId: string): Promise<ComplianceCase>
-  uploadDocument(
+  getStatuses(organizationId: string): Promise<ComplianceDocumentStatus[]>
+  updateStatuses(
     organizationId: string,
-    requirementId: string,
-    file: File,
-  ): Promise<ComplianceDocument>
-  replaceDocument(
-    organizationId: string,
-    documentId: string,
-    file: File,
-  ): Promise<ComplianceDocument>
+    statuses: ComplianceDocumentStatus[],
+  ): Promise<void>
 }
