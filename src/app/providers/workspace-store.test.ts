@@ -293,8 +293,21 @@ describe("workspace persistence", () => {
       store.communities.map((community) => community.id),
     )
     expect(loaded.activeCommunityId).toBe(store.activeCommunityId)
-    // The session is deliberately not part of the payload: reloading signs you out.
+    // A store with no session loads with none.
     expect(loaded.session).toBeNull()
+  })
+
+  it("persists the signed-in session so a reload keeps the user in", () => {
+    const storage = memoryStorage()
+    const store: WorkspaceStore = {
+      ...storeWith(),
+      session: { email: "ada@example.com", name: "Ada Okoye", signedInAt: "2026-10-27T00:00:00.000Z" },
+    }
+    persistWorkspaceStore(store, storage)
+
+    const loaded = loadWorkspaceStore(storage)
+    expect(loaded.session?.email).toBe("ada@example.com")
+    expect(loaded.session?.name).toBe("Ada Okoye")
   })
 
   it("folds the single-community keys of the old build into the first slice", () => {

@@ -106,7 +106,7 @@ export interface WorkspaceStore {
   activeCommunityId: string
   theme: ThemePreference
   admin: AdminAccount
-  /** Session-scoped on purpose: reloading the page signs you out. */
+  /** The signed-in identity. Persisted so a page reload keeps the user signed in. */
   session: Session | null
 }
 
@@ -237,6 +237,7 @@ interface StoredWorkspace {
   communities?: WorkspaceCommunity[]
   activeCommunityId?: string
   admin?: AdminAccount
+  session?: Session | null
 }
 
 /**
@@ -302,7 +303,7 @@ export function loadWorkspaceStore(storage: WorkspaceStorage = browserStorage())
     activeCommunityId,
     theme,
     admin: stored.admin ?? emptyAdmin,
-    session: null,
+    session: stored.session ?? null,
   }
 }
 
@@ -314,6 +315,7 @@ export function persistWorkspaceStore(store: WorkspaceStore, storage: WorkspaceS
         communities: store.communities,
         activeCommunityId: store.activeCommunityId,
         admin: store.admin,
+        session: store.session,
       }),
     )
     storage.setItem(THEME_KEY, store.theme)

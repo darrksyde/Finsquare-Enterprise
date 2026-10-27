@@ -7,8 +7,27 @@ import type { AuthOutcome, SignInCredentials, SignUpInput } from "../types"
 
 const repository: AuthRepository = env.VITE_ENABLE_MOCKS ? new MockAuthRepository() : new ApiAuthRepository()
 
-// The access token lives for the session only; `apiClient` reads it through this provider.
-let accessToken: string | null = null
+const TOKEN_KEY = "finsquare-auth-token"
+
+function readStoredToken(): string | null {
+  try {
+    return window.localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+function persistToken(token: string | null) {
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token)
+    else window.localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Storage unavailable (private mode) — the session stays in memory only.
+  }
+}
+
+// The access token survives a page reload; `apiClient` reads it through this provider.
+let accessToken: string | null = readStoredToken()
 configureApiAuth(() => accessToken)
 
 export const authService = {
@@ -16,6 +35,7 @@ export const authService = {
     const outcome = await repository.signIn(credentials)
     if (outcome.status === "signed-in") {
       accessToken = outcome.result.accessToken
+      persistToken(accessToken)
     }
     return outcome
   },
@@ -24,6 +44,7 @@ export const authService = {
     const outcome = await repository.signUp(input)
     if (outcome.status === "signed-in") {
       accessToken = outcome.result.accessToken
+      persistToken(accessToken)
     }
     return outcome
   },
@@ -37,6 +58,7 @@ export const authService = {
       await repository.signOut()
     } finally {
       accessToken = null
+      persistToken(null)
     }
   },
 }
