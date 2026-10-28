@@ -55,6 +55,17 @@ export function createMockWalletRepository(
       stores.set(organizationId, { ...stores.of(organizationId), ...next })
       listeners.forEach((l) => l())
     },
+    async withdraw(input) {
+      // Mock only records the intent; the backend performs the real transfer.
+      const reference = `TRF-${Math.floor(10000 + Math.random() * 89999)}`
+      const data = stores.of(organizationId)
+      const wallets = data.wallets.map((w) =>
+        w.id === input.walletId ? { ...w, availableBalance: w.availableBalance - input.amount } : w,
+      )
+      stores.set(organizationId, { ...data, wallets })
+      listeners.forEach((l) => l())
+      return { reference }
+    },
     subscribe(listener) {
       listeners.add(listener)
       return () => void listeners.delete(listener)

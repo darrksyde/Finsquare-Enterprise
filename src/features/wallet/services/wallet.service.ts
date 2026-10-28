@@ -1,6 +1,9 @@
 import { walletId } from "../mocks/wallet.mock"
 import { createMockWalletRepository } from "../repositories/mock-wallet.repository"
+import { ApiWalletRepository } from "../repositories/api-wallet.repository"
 import type { WalletRepository } from "../repositories/wallet.repository"
+import { env } from "@/app/config/env"
+import { BANK_CODES } from "../constants/banks"
 import { SEED_ORGANIZATION_ID } from "@/lib/tenancy/seed-tenant"
 import { checkOutflow, requiredApprovals } from "../domain/wallet.rules"
 import type {
@@ -194,6 +197,21 @@ export class WalletService {
       await this.repo.commit({ wallets, account: this.syncAccount(d, wallets), transactions: [...txs, ...d.transactions], audit: this.audit(d, { actor: actor.name, action: simulated ? "Transfer simulated" : "Transfer completed", walletId: from.id, walletName: from.name, amount: input.amount, reference: ref, transactionId: txs[0].id }) })
       this.notifyCredited(wallets.filter((x) => x.id === internal.id))
       return { reference: ref }
+    }
+    // External bank transfer. A live workspace authorizes the real backend withdrawal; a demo
+    // workspace keeps the local simulation below.
+    if (mode === "live") {
+      const bankCode = BANK_CODES[input.bankName]
+      if (!bankCode) throw new Error(`Unsupported bank: ${input.bankName}`)
+      return this.repo.withdraw({
+        walletId: from.id,
+        amount: input.amount,
+        accountNumber: input.accountNumber,
+        bankCode,
+        accountName: input.accountName,
+        narration: input.narration,
+        pin: input.pin,
+      })
     }
     const t = this.baseTx(from, { type: "Transfer", amount: input.amount, direction: "debit", description: input.narration, status: simulated ? "Completed" : "Processing", initiatedBy: actor.name, recipient: `${input.accountName} · ${input.bankName}`, related: { branchId: from.branchId, branchName: from.branchName, accountNumber: input.accountNumber }, metadata: { reference: ref, bank: input.bankName, narration: input.narration, ...(simulated ? { simulated: "true" } : {}) }, simulated })
     const wallets = d.wallets.map((w) => (w.id === from.id ? { ...w, availableBalance: w.availableBalance - input.amount } : w))
@@ -398,7 +416,9 @@ const services = new Map<string, WalletService>()
 export function walletServiceFor(organizationId: string): WalletService {
   let service = services.get(organizationId)
   if (!service) {
-    service = new WalletService(createMockWalletRepository(organizationId))
+    service = new WalletService(
+      env.VITE_ENABLE_MOCKS ? createMockWalletRepository(organizationId) : new ApiWalletRepository(),
+    )
     services.set(organizationId, service)
   }
   return service

@@ -117,6 +117,10 @@ export const endpoints = {
     workspace: "/enterprise/communications",
     commands: "/enterprise/communications",
   },
+  wallet: {
+    workspace: "/enterprise/wallet",
+    withdraw: "/wallet/withdraw",
+  },
   forms: {
     /** The shared question library: one library per organization, used by every form builder. */
     questionLibrary: (organizationId: string) =>
